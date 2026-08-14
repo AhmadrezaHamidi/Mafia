@@ -59,20 +59,23 @@ export function Table({ players, center, selectable, selectedId, onSelect, voteC
             <div
               className={[
                 "relative mx-auto mb-1 flex h-12 w-12 items-center justify-center rounded-full border-2 font-bold transition-all",
-                p.alive ? "" : "grayscale opacity-35 rotate-[8deg]",
+                p.alive ? "" : "opacity-45 saturate-0",
                 canSelect ? "cursor-pointer hover:scale-110" : "cursor-default",
               ].join(" ")}
               style={{
                 background: "var(--table-edge)",
                 borderColor: isSelected
                   ? "var(--blood-bright)"
-                  : p.isMe
-                  ? "var(--lamp)"
-                  : "var(--rule)",
+                  : !p.alive
+                    ? "var(--muted)"
+                    : p.isMe
+                      ? "var(--lamp)"
+                      : "var(--rule)",
+                borderStyle: p.alive ? "solid" : "dashed",
                 boxShadow: isSelected ? "0 0 0 3px rgba(217,73,92,0.25)" : undefined,
               }}
             >
-              {p.isHost && (
+              {p.isHost && p.alive && (
                 <span className="absolute -top-2 -end-1 text-xs" style={{ color: "var(--lamp)" }}>
                   ★
                 </span>
@@ -85,16 +88,41 @@ export function Table({ players, center, selectable, selectedId, onSelect, voteC
                   {votes}
                 </span>
               ) : null}
-              {p.name.charAt(0)}
+
+              <span className={p.alive ? "" : "opacity-50"}>{p.name.charAt(0)}</span>
+
+              {/* مرگ باید در یک نگاه دیده شود، نه از روی نبودن آیکون میکروفون */}
+              {!p.alive && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center text-2xl font-black"
+                  style={{ color: "var(--blood-bright)", opacity: 0.85 }}
+                >
+                  ✕
+                </span>
+              )}
+
               {p.alive && (
                 <span className="absolute -bottom-1 -end-1 text-[0.6rem] leading-none">
                   {p.micMuted ? "🔇" : "🎙️"}
                 </span>
               )}
             </div>
-            <div className="truncate text-[0.68rem]" style={{ color: "var(--parchment-dim)" }}>
+
+            <div
+              className="truncate text-[0.68rem]"
+              style={{
+                color: p.alive ? "var(--parchment-dim)" : "var(--muted)",
+                textDecoration: p.alive ? undefined : "line-through",
+              }}
+            >
               {p.name}
             </div>
+            {!p.alive && (
+              <div className="text-[0.58rem] leading-tight" style={{ color: "var(--blood-bright)" }}>
+                حذف شد
+              </div>
+            )}
           </button>
         );
       })}

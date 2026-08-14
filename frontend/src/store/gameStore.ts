@@ -141,6 +141,22 @@ export const useGameStore = create<GameState>((set, get) => {
           votes[String(voter)] = String(target);
         }
 
+        // تشخیص مرگ تازه با مقایسه‌ی snapshot قبلی — سرور رویدادی برای این نمی‌فرستد.
+        // علت از فازی که *وارد* آن شده‌ایم استنتاج می‌شود: اگر روز شده یعنی
+        // دیشب کشته شده، اگر شب شده یعنی با رأی روز حذف شده.
+        const prevAlive = new Map(get().players.map((p) => [p.id, p.alive]));
+        const justDied = st.players.find(
+          (p) => !p.isAlive && prevAlive.get(String(p.playerId)) === true,
+        );
+        if (justDied) {
+          set({
+            lastDeath: {
+              playerId: String(justDied.playerId),
+              cause: phase === "night" ? "day" : "night",
+            },
+          });
+        }
+
         set({
           phase,
           round: st.round,

@@ -3,6 +3,7 @@ import { Table } from "../components/Table";
 import { RoleCard } from "../components/RoleCard";
 import { MicToggle } from "../components/MicToggle";
 import { ChatPanel } from "../components/ChatPanel";
+import { StatusBar } from "../components/StatusBar";
 
 export function Night() {
   const players = useGameStore((s) => s.players);
@@ -10,14 +11,17 @@ export function Night() {
   const timeLeftSec = useGameStore((s) => s.timeLeftSec);
   const nightTarget = useGameStore((s) => s.nightTarget);
   const submitNightAction = useGameStore((s) => s.submitNightAction);
+  const lastDeath = useGameStore((s) => s.lastDeath);
   const me = useGameStore((s) => s.me());
 
   const isMafia = me?.role === "SimpleMafia";
+  const deadPlayer = lastDeath ? players.find((p) => p.id === lastDeath.playerId) : null;
   const minutes = String(Math.floor(timeLeftSec / 60)).padStart(2, "0");
   const seconds = String(timeLeftSec % 60).padStart(2, "0");
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col p-6 pb-10 screen-enter">
+      <StatusBar />
       <div className="mb-1 text-center">
         <p
           className="mb-1 font-mono text-[0.68rem] uppercase tracking-[0.12em]"
@@ -30,6 +34,19 @@ export function Night() {
           {isMafia ? "قربانی امشب رو انتخاب کن" : "مافیا دارن قربانی امشب رو انتخاب می‌کنن"}
         </p>
       </div>
+
+      {deadPlayer && (
+        <div
+          className="mb-3 rounded-lg border px-3 py-2 text-center text-sm"
+          style={{
+            background: "rgba(156,43,50,0.14)",
+            borderColor: "rgba(156,43,50,0.4)",
+            color: "var(--blood-bright)",
+          }}
+        >
+          {lastDeath?.cause === "night" ? "دیشب" : "امروز با رأی شهر"} «{deadPlayer.name}» حذف شد
+        </div>
+      )}
 
       <Table
         players={players}

@@ -4,6 +4,7 @@ import { Table } from "../components/Table";
 import { RoleCard } from "../components/RoleCard";
 import { MicToggle } from "../components/MicToggle";
 import { ChatPanel } from "../components/ChatPanel";
+import { StatusBar } from "../components/StatusBar";
 
 export function Day() {
   const players = useGameStore((s) => s.players);
@@ -27,6 +28,7 @@ export function Day() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col p-6 pb-10 screen-enter">
+      <StatusBar />
       <div className="mb-1 text-center">
         <p
           className="mb-1 font-mono text-[0.68rem] uppercase tracking-[0.12em]"
@@ -46,7 +48,9 @@ export function Day() {
             color: "var(--blood-bright)",
           }}
         >
-          {lastDeath?.cause === "night" ? "دیشب" : "دیروز"} «{deadPlayer.name}» حذف شد
+          {lastDeath?.cause === "night"
+            ? `دیشب «${deadPlayer.name}» توسط مافیا کشته شد`
+            : `«${deadPlayer.name}» با رأی شهر حذف شد`}
         </div>
       )}
 
