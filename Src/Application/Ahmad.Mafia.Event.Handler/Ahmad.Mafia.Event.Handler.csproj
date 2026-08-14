@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Domain\Ahmad.Mafia.Domain\Ahmad.Mafia.Domain.csproj" />
+    <ProjectReference Include="..\Ahmad.Mafia.Application.Contract\Ahmad.Mafia.Application.Contract.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Ahmad.Mafia.Persistence.EF\Ahmad.Mafia.Persistence.EF.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AhmadBase.Application" Version="1.0.1" />
+    <PackageReference Include="AhmadBase.Event.Handler" Version="1.0.10" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

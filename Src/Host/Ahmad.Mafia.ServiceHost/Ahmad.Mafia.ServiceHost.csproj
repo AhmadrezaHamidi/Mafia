@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Application\Ahmad.Mafia.Application.Contract\Ahmad.Mafia.Application.Contract.csproj" />
+    <ProjectReference Include="..\..\Application\Ahmad.Mafia.Application.Query.Contract\Ahmad.Mafia.Application.Query.Contract.csproj" />
+    <ProjectReference Include="..\..\Application\Ahmad.Mafia.Application.Query\Ahmad.Mafia.Application.Query.csproj" />
+    <ProjectReference Include="..\..\Application\Ahmad.Mafia.Application\Ahmad.Mafia.Application.csproj" />
+    <ProjectReference Include="..\..\Application\Ahmad.Mafia.Event.Handler\Ahmad.Mafia.Event.Handler.csproj" />
+    <ProjectReference Include="..\..\Domain\Ahmad.Mafia.Domain\Ahmad.Mafia.Domain.csproj" />
+    <ProjectReference Include="..\..\Domain\Ahmad.Mafia.Event\Ahmad.Mafia.Event.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Ahmad.Mafia.API.Config\Ahmad.Mafia.API.Config.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Ahmad.Mafia.Persistence.EF\Ahmad.Mafia.Persistence.EF.csproj" />
+    <ProjectReference Include="..\..\Rest\Ahmad.Mafia.API.Rest\Ahmad.Mafia.API.Rest.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Ahmad.Mafia.Read.Dapper\Ahmad.Mafia.Read.Dapper.csproj" />
+    <ProjectReference Include="..\Ahmad.Mafia.Option\Ahmad.Mafia.Option.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

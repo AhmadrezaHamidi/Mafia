@@ -1,0 +1,32 @@
+# ── .NET ─────────────────────────────────────────────────────────────────────
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userprefs
+.vs/
+TestResults/
+*.trx
+
+# ── Node / Frontend ──────────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+
+# ── محیط و رمزها ─────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+appsettings.Production.json
+appsettings.*.Local.json
+
+# ── ابزار و سیستم‌عامل ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+logs/
+.idea/
