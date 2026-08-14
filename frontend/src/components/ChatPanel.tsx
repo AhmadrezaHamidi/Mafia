@@ -13,6 +13,7 @@ export function ChatPanel() {
   const chatMessages = useGameStore((s) => s.chatMessages);
   const sendChatMessage = useGameStore((s) => s.sendChatMessage);
   const thread = useGameStore((s) => s.activeThread());
+  const chatConnected = useGameStore((s) => s.chatConnected);
   const [draft, setDraft] = useState("");
 
   const messages = useMemo(
@@ -43,10 +44,17 @@ export function ChatPanel() {
       style={{ borderColor: "var(--rule)", background: "var(--table)" }}
     >
       <div
-        className="border-b px-3 py-1.5 font-mono text-[0.65rem] tracking-wide"
+        className="flex items-center justify-between border-b px-3 py-1.5 font-mono text-[0.65rem] tracking-wide"
         style={{ borderColor: "var(--rule)", color: "var(--lamp)" }}
       >
-        {THREAD_LABEL[thread]}
+        <span>{THREAD_LABEL[thread]}</span>
+        {/* وضعیت اتصال بلادرنگ — اگر قطع باشد پیام‌ها نمی‌رسند و کاربر باید بداند */}
+        <span
+          title={chatConnected ? "متصل" : "در حال اتصال دوباره…"}
+          style={{ color: chatConnected ? "var(--town)" : "var(--muted)" }}
+        >
+          {chatConnected ? "● زنده" : "○ قطع"}
+        </span>
       </div>
       <div className="flex-1 space-y-1.5 overflow-y-auto px-3 py-2 text-sm">
         {messages.length === 0 && (

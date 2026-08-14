@@ -6,6 +6,14 @@
 
 import { create } from "zustand";
 import { gameApi, roomApi, type GameStateView, type RoomView } from "../api/mafia";
+import {
+  connectChat,
+  disconnectChat,
+  onChatMessage,
+  onChatStatus,
+  rejoin as rejoinChat,
+  sendChat,
+} from "../api/chatHub";
 import type { ChatMessage, ChatThreadType, GamePhase, Player, Role, WinningTeam } from "../types";
 
 const POLL_NORMAL = 2500;
@@ -20,12 +28,16 @@ interface Identity {
 }
 const idKey = (code: string) => `mafia:id:${code.toUpperCase()}`;
 
+// sessionStorage و نه localStorage: هویت باید مخصوص همین تب باشد.
+// با localStorage اگر دو تب روی یک مرورگر باز شود (که برای دمو دادن کاملاً
+// محتمل است) بازیکن دوم هویت اولی را بازنویسی می‌کند و هر دو تب فکر می‌کنند
+// یک نفرند. sessionStorage هم refresh را تحمل می‌کند هم تب‌ها را جدا نگه می‌دارد.
 function saveIdentity(code: string, id: Identity) {
-  try { localStorage.setItem(idKey(code), JSON.stringify(id)); } catch { /* حالت خصوصی مرورگر */ }
+  try { sessionStorage.setItem(idKey(code), JSON.stringify(id)); } catch { /* حالت خصوصی مرورگر */ }
 }
 function loadIdentity(code: string): Identity | null {
   try {
-    const raw = localStorage.getItem(idKey(code));
+    const raw = sessionStorage.getItem(idKey(code));
     return raw ? (JSON.parse(raw) as Identity) : null;
   } catch { return null; }
 }
@@ -63,6 +75,8 @@ interface GameState {
   winningTeam: WinningTeam;
   timerHandle: ReturnType<typeof setInterval> | null;
   chatMessages: ChatMessage[];
+  /** اتصال SignalR برقرار است یا نه — برای نشان دادن وضعیت چت در UI */
+  chatConnected: boolean;
   error: string | null;
 
   createRoom: (nickname: string, capacity: number) => Promise<string>;
@@ -75,7 +89,7 @@ interface GameState {
   castVote: (targetId: string) => void;
   retractVote: () => void;
   toggleMic: () => void;
-  sendChatMessage: (text: string) => void;
+  sendChatMessage: (text: string) => Promise<void>;
   requestRematch: () => void;
   leaveRoom: () => void;
 
@@ -92,6 +106,10 @@ let myPlayerId: number | null = null;
 let myRoomId: number | null = null;
 let myGameSessionId: number | null = null;
 let micMuted = false;
+let unsubMessage: (() => void) | null = null;
+let unsubStatus: (() => void) | null = null;
+/** آخرین فازی که برای آن عضویت کانال چت را از سرور گرفتیم */
+let chatJoinedForPhase: string | null = null;
 
 export const useGameStore = create<GameState>((set, get) => {
 
@@ -155,6 +173,15 @@ export const useGameStore = create<GameState>((set, get) => {
               cause: phase === "night" ? "day" : "night",
             },
           });
+        }
+
+        // ForceChannelSwitch (سند ۰۷): با تغییر فاز یا مرگِ خودم، عضویت کانال
+        // چت باید بازمحاسبه شود. کلاینت فقط درخواست می‌دهد؛ کانال را سرور
+        // تعیین می‌کند — پس حتی اگر اینجا اشتباه صدا بزنیم، نشتی رخ نمی‌دهد.
+        const chatKey = `${st.phase}:${st.iAmAlive}`;
+        if (chatKey !== chatJoinedForPhase) {
+          chatJoinedForPhase = chatKey;
+          void rejoinChat();
         }
 
         set({
@@ -255,6 +282,7 @@ export const useGameStore = create<GameState>((set, get) => {
     winningTeam: null,
     timerHandle: null,
     chatMessages: [],
+    chatConnected: false,
     error: null,
 
     createRoom: async (nickname, capacity) => {
@@ -289,6 +317,19 @@ export const useGameStore = create<GameState>((set, get) => {
       ensureTicker();
       if (syncTimer) clearTimeout(syncTimer);
       syncLoop();
+
+      // چت بلادرنگ — تنها چیزی که واقعاً به push نیاز دارد
+      if (myPlayerId != null) {
+        unsubMessage?.();
+        unsubStatus?.();
+        unsubMessage = onChatMessage((msg) => {
+          // پیام تکراری نگیریم (reconnect می‌تواند باعث دوباره رسیدن شود)
+          if (get().chatMessages.some((m) => m.id === msg.id)) return;
+          set({ chatMessages: [...get().chatMessages, msg] });
+        });
+        unsubStatus = onChatStatus((connected) => set({ chatConnected: connected }));
+        void connectChat(c, myPlayerId);
+      }
     },
 
     stopSync: () => {
@@ -296,6 +337,9 @@ export const useGameStore = create<GameState>((set, get) => {
       syncAbort?.abort();
       const h = get().timerHandle;
       if (h) { clearInterval(h); set({ timerHandle: null }); }
+      unsubMessage?.(); unsubMessage = null;
+      unsubStatus?.();  unsubStatus = null;
+      void disconnectChat();
     },
 
     startGame: () => {
@@ -348,25 +392,17 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ players: get().players.map((p) => (p.isMe ? { ...p, micMuted } : p)) });
     },
 
-    sendChatMessage: (text) => {
+    // پیام از طریق hub می‌رود و از همان مسیر برمی‌گردد (echo سرور)، پس
+    // اینجا چیزی به لیست اضافه نمی‌کنیم — وگرنه پیام خودمان دوبار دیده می‌شود.
+    sendChatMessage: async (text) => {
       const body = text.trim();
       const me = get().me();
       if (!body || !me) return;
-      const thread = get().activeThread();
-      if (!thread) return;
-      set({
-        chatMessages: [
-          ...get().chatMessages,
-          {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            thread,
-            senderId: me.id,
-            senderName: me.name,
-            text: body,
-            sentAtMs: Date.now(),
-          },
-        ],
-      });
+      try {
+        await sendChat(me.name, body);
+      } catch (err) {
+        set({ error: (err as Error).message });
+      }
     },
 
     me: () => get().players.find((p) => p.isMe),

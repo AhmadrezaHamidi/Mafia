@@ -14,6 +14,8 @@ export default defineConfig({
     proxy: {
       // بک‌اند Kestrel روی 5057 بالا می‌آید (launchSettings پروفایل http)
       '/api': { target: 'http://localhost:5057', changeOrigin: true },
+      // چت SignalR — ws:true لازم است وگرنه WebSocket ارتقا پیدا نمی‌کند
+      '/hubs': { target: 'http://localhost:5057', changeOrigin: true, ws: true },
     },
   },
 })
