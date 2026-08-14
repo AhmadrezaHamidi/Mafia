@@ -1,46 +1,52 @@
+// وضعیت بازی — پشتش API واقعی است، نه شبیه‌سازی محلی.
+//
+// منبع حقیقت سرور است. این store فقط آخرین snapshot را نگه می‌دارد و با
+// polling تازه‌اش می‌کند (تصمیم معماری: به‌جای WebSocket برای state، درخواست
+// با فاصله‌ی adaptive). تایمر بین دو poll به‌صورت محلی می‌شمارد تا روان بماند.
+
 import { create } from "zustand";
+import { gameApi, roomApi, type GameStateView, type RoomView } from "../api/mafia";
 import type { ChatMessage, ChatThreadType, GamePhase, Player, Role, WinningTeam } from "../types";
 
-const NPC_NAMES = [
-  "امیر", "نگار", "رضا", "پویا", "مریم", "کیان", "الهام",
-  "سینا", "بهار", "آرش", "شیدا", "نیما", "ترانه", "یاسین",
-];
+const POLL_NORMAL = 2500;
+const POLL_URGENT = 800;   // نزدیک پایان فاز
+const POLL_HIDDEN = 8000;  // تب مخفی — سرور ۱ هسته‌ای را اذیت نکنیم
+const URGENT_BELOW_SEC = 5;
 
-const NIGHT_DURATION = 45;
-const DAY_DURATION = 90;
-const NPC_ACT_DELAY_MS = [1200, 3600];
-const NPC_JOIN_DELAY_MS = [700, 2200];
+// ── هویت بازیکن، تا refresh صفحه بازی را از دست ندهد ─────────────────────────
+interface Identity {
+  playerId: number;
+  roomId: number;
+}
+const idKey = (code: string) => `mafia:id:${code.toUpperCase()}`;
 
-const LOBBY_CHATTER = [
-  "سلام به همه 👋", "امیدوارم این‌بار زودتر شناسایی بشن", "کی هاستمونه؟", "آماده‌ام شروع کنیم",
-];
-const DAY_CHATTER = [
-  "به‌نظرم باید رو حرفای دیشب دقت کنیم", "کسی مشکوک نمی‌بینه؟", "من که بی‌گناهم!", "رأی من هنوز مشخص نیست",
-];
-
-function randomRoomCode(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
+function saveIdentity(code: string, id: Identity) {
+  try { localStorage.setItem(idKey(code), JSON.stringify(id)); } catch { /* حالت خصوصی مرورگر */ }
+}
+function loadIdentity(code: string): Identity | null {
+  try {
+    const raw = localStorage.getItem(idKey(code));
+    return raw ? (JSON.parse(raw) as Identity) : null;
+  } catch { return null; }
 }
 
-function assignRoles(players: Player[]): Player[] {
-  const mafiaCount = Math.max(1, Math.round(players.length / 4));
-  const shuffled = [...players].sort(() => Math.random() - 0.5);
-  const mafiaIds = new Set(shuffled.slice(0, mafiaCount).map((p) => p.id));
-  return players.map((p) => ({
-    ...p,
-    role: (mafiaIds.has(p.id) ? "SimpleMafia" : "SimpleCitizen") as Role,
-  }));
+// ── تبدیل شکل سرور به شکل UI ─────────────────────────────────────────────────
+function mapPhase(serverPhase: string): GamePhase {
+  switch (serverPhase) {
+    case "Night": return "night";
+    case "Day":
+    case "Voting": return "day";
+    case "Ended": return "end";
+    default: return "lobby";
+  }
 }
 
-function currentThread(me: Player | undefined, phase: GamePhase): ChatThreadType | null {
-  if (!me) return null;
-  if (!me.alive) return "deadChat";
-  if (phase === "lobby") return "lobby";
-  if (phase === "night") return me.role === "SimpleMafia" ? "nightMafia" : null;
-  return "dayPublic";
+function mapWinner(team: string | null | undefined): WinningTeam {
+  if (!team) return null;
+  const t = team.toLowerCase();
+  if (t.includes("mafia")) return "mafia";
+  if (t.includes("town") || t.includes("citizen")) return "town";
+  return null;
 }
 
 interface GameState {
@@ -57,9 +63,13 @@ interface GameState {
   winningTeam: WinningTeam;
   timerHandle: ReturnType<typeof setInterval> | null;
   chatMessages: ChatMessage[];
+  error: string | null;
 
-  createRoom: (nickname: string, capacity: number) => void;
-  joinRoom: (code: string, nickname: string) => void;
+  createRoom: (nickname: string, capacity: number) => Promise<string>;
+  joinRoom: (code: string, nickname: string) => Promise<string>;
+  /** شروع هم‌گام‌سازی برای یک روم — صفحه‌ی Room موقع mount صدا می‌زند */
+  enterRoom: (code: string) => void;
+  stopSync: () => void;
   startGame: () => void;
   submitNightAction: (targetId: string) => void;
   castVote: (targetId: string) => void;
@@ -75,337 +85,294 @@ interface GameState {
   activeThread: () => ChatThreadType | null;
 }
 
-function makePlayer(id: string, name: string, isMe: boolean, isHost: boolean): Player {
-  return { id, name, isMe, isHost, alive: true, connected: true, micMuted: false };
-}
+// وضعیت هم‌گام‌سازی که نباید باعث re-render شود
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
+let syncAbort: AbortController | null = null;
+let myPlayerId: number | null = null;
+let myRoomId: number | null = null;
+let myGameSessionId: number | null = null;
+let micMuted = false;
 
-export const useGameStore = create<GameState>((set, get) => ({
-  roomCode: null,
-  capacity: 8,
-  players: [],
-  phase: "lobby",
-  round: 1,
-  deadline: null,
-  timeLeftSec: 0,
-  lastDeath: null,
-  nightTarget: null,
-  votes: {},
-  winningTeam: null,
-  timerHandle: null,
-  chatMessages: [],
+export const useGameStore = create<GameState>((set, get) => {
 
-  createRoom: (nickname, capacity) => {
-    clearPhaseTimer(get);
-    set({
-      roomCode: randomRoomCode(),
-      capacity,
-      players: [makePlayer("me", nickname || "من", true, true)],
-      phase: "lobby",
-      round: 1,
-      lastDeath: null,
-      nightTarget: null,
-      votes: {},
-      winningTeam: null,
-      chatMessages: [],
-    });
-    scheduleNpcJoins(set, get, capacity - 1);
-  },
+  /** یک دور هم‌گام‌سازی؛ خودش دور بعدی را زمان‌بندی می‌کند */
+  async function syncLoop() {
+    const code = get().roomCode;
+    if (!code) return;
 
-  joinRoom: (code, nickname) => {
-    clearPhaseTimer(get);
-    const capacity = 8;
-    const existingNpcCount = capacity - 2;
-    const npcs = NPC_NAMES.slice(0, existingNpcCount).map((name, i) => makePlayer(`npc-${i}`, name, false, false));
-    set({
-      roomCode: code.toUpperCase(),
-      capacity,
-      players: [makePlayer("me", nickname || "من", true, false), ...npcs],
-      phase: "lobby",
-      round: 1,
-      lastDeath: null,
-      nightTarget: null,
-      votes: {},
-      winningTeam: null,
-      chatMessages: [],
-    });
-    scheduleNpcJoins(set, get, 1);
-  },
+    syncAbort?.abort();
+    syncAbort = new AbortController();
+    const signal = syncAbort.signal;
 
-  startGame: () => {
-    const { players } = get();
-    set({ players: assignRoles(players), phase: "night", round: 1 });
-    startPhaseTimer(set, get, "night", NIGHT_DURATION);
-    scheduleNpcNightActions(set, get);
-  },
+    let nextDelay = POLL_NORMAL;
 
-  submitNightAction: (targetId) => {
-    const me = get().me();
-    if (!me || me.role !== "SimpleMafia" || !me.alive || get().phase !== "night") return;
-    set({ nightTarget: targetId });
-  },
+    try {
+      if (myGameSessionId == null) {
+        // ── هنوز در Lobby ─────────────────────────────────────────────────
+        const room: RoomView = await roomApi.get(code, signal);
+        myRoomId = room.roomId;
 
-  castVote: (targetId) => {
-    const me = get().me();
-    if (!me || !me.alive || get().phase !== "day") return;
-    set((s) => ({ votes: { ...s.votes, [me.id]: targetId } }));
-    maybeResolveVotingEarly(set, get);
-  },
+        set({
+          capacity: room.capacity,
+          phase: room.gameSessionId ? get().phase : "lobby",
+          players: room.members.map<Player>((m) => ({
+            id: String(m.playerId),
+            name: m.nickname,
+            isMe: m.playerId === myPlayerId,
+            isHost: m.isHost,
+            alive: true,
+            connected: true,
+            micMuted: m.playerId === myPlayerId ? micMuted : false,
+          })),
+          error: null,
+        });
 
-  retractVote: () => {
-    const me = get().me();
-    if (!me) return;
-    set((s) => {
-      const next = { ...s.votes };
-      delete next[me.id];
-      return { votes: next };
-    });
-  },
+        if (room.gameSessionId) {
+          myGameSessionId = room.gameSessionId;
+          nextDelay = 300; // فوراً برو سراغ state بازی
+        }
+      } else {
+        // ── داخل بازی ─────────────────────────────────────────────────────
+        const st: GameStateView = await gameApi.state(myGameSessionId, myPlayerId!, signal);
+        const phase = mapPhase(st.phase);
 
-  toggleMic: () => {
-    const me = get().me();
-    if (!me) return;
-    set((s) => ({
-      players: s.players.map((p) => (p.id === me.id ? { ...p, micMuted: !p.micMuted } : p)),
-    }));
-  },
+        const votes: Record<string, string> = {};
+        for (const [voter, target] of Object.entries(st.votes ?? {})) {
+          votes[String(voter)] = String(target);
+        }
 
-  sendChatMessage: (text) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    const me = get().me();
-    const thread = currentThread(me, get().phase);
-    if (!me || !thread) return;
-    pushChatMessage(set, thread, me.id, me.name, trimmed);
-  },
+        set({
+          phase,
+          round: st.round,
+          timeLeftSec: st.timeLeftSeconds,
+          deadline: Date.now() + st.timeLeftSeconds * 1000,
+          nightTarget: st.myNightTarget != null ? String(st.myNightTarget) : null,
+          votes,
+          players: st.players.map<Player>((p) => ({
+            id: String(p.playerId),
+            name: p.nickname,
+            isMe: p.playerId === myPlayerId,
+            isHost: String(p.playerId) === String(get().players.find((x) => x.isHost)?.id ?? ""),
+            alive: p.isAlive,
+            connected: p.connection === "Connected",
+            micMuted: p.playerId === myPlayerId ? micMuted : false,
+            role: p.playerId === myPlayerId ? (st.myRole as Role | undefined) : undefined,
+          })),
+          error: null,
+        });
 
-  requestRematch: () => {
-    const { players, roomCode, capacity } = get();
-    const reset = players.map((p) => ({ ...p, alive: true, role: undefined }));
-    clearPhaseTimer(get);
-    set({
-      roomCode,
-      capacity,
-      players: reset,
-      phase: "lobby",
-      round: 1,
-      lastDeath: null,
-      nightTarget: null,
-      votes: {},
-      winningTeam: null,
-      chatMessages: [],
-    });
-  },
+        if (phase === "end") {
+          // نقش‌ها فقط بعد از پایان بازی افشا می‌شوند
+          try {
+            const res = await gameApi.result(myGameSessionId);
+            set({
+              winningTeam: mapWinner(res.winningTeam),
+              players: res.reveal.map<Player>((r) => ({
+                id: String(r.playerId),
+                name: r.nickname,
+                isMe: r.playerId === myPlayerId,
+                isHost: false,
+                alive: r.isAlive,
+                connected: true,
+                micMuted: false,
+                role: r.role as Role,
+              })),
+            });
+          } catch { /* نتیجه هنوز آماده نیست */ }
+          return; // بازی تمام شده، polling لازم نیست
+        }
 
-  leaveRoom: () => {
-    clearPhaseTimer(get);
-    set({
-      roomCode: null,
-      players: [],
-      phase: "lobby",
-      round: 1,
-      lastDeath: null,
-      nightTarget: null,
-      votes: {},
-      winningTeam: null,
-      chatMessages: [],
-    });
-  },
-
-  me: () => get().players.find((p) => p.isMe),
-  alivePlayers: () => get().players.filter((p) => p.alive),
-  voteCounts: () => {
-    const counts: Record<string, number> = {};
-    for (const target of Object.values(get().votes)) {
-      counts[target] = (counts[target] ?? 0) + 1;
-    }
-    return counts;
-  },
-  activeThread: () => currentThread(get().me(), get().phase),
-}));
-
-function pushChatMessage(
-  set: (partial: Partial<GameState>) => void,
-  thread: ChatThreadType,
-  senderId: string,
-  senderName: string,
-  text: string
-) {
-  const message: ChatMessage = {
-    id: `${senderId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    thread,
-    senderId,
-    senderName,
-    text,
-    sentAtMs: Date.now(),
-  };
-  set((s) => ({ chatMessages: [...s.chatMessages, message] }));
-}
-
-function scheduleNpcJoins(
-  set: (partial: Partial<GameState>) => void,
-  get: () => GameState,
-  npcCount: number
-) {
-  for (let i = 0; i < npcCount; i++) {
-    const delay = (i + 1) * (NPC_JOIN_DELAY_MS[0] + Math.random() * (NPC_JOIN_DELAY_MS[1] - NPC_JOIN_DELAY_MS[0]));
-    setTimeout(() => {
-      if (get().phase !== "lobby") return;
-      const npc = makePlayer(`npc-${i}`, NPC_NAMES[i % NPC_NAMES.length], false, false);
-      set((s) => (s.players.some((p) => p.id === npc.id) ? {} : { players: [...s.players, npc] }));
-      if (Math.random() < 0.5) {
-        const line = LOBBY_CHATTER[Math.floor(Math.random() * LOBBY_CHATTER.length)];
-        pushChatMessage(set, "lobby", npc.id, npc.name, line);
+        const hidden = typeof document !== "undefined" && document.hidden;
+        nextDelay = hidden
+          ? POLL_HIDDEN
+          : st.timeLeftSeconds <= URGENT_BELOW_SEC
+            ? POLL_URGENT
+            : POLL_NORMAL;
       }
-    }, delay);
-  }
-}
-
-function clearPhaseTimer(get: () => GameState) {
-  const handle = get().timerHandle;
-  if (handle) clearInterval(handle);
-}
-
-function startPhaseTimer(
-  set: (partial: Partial<GameState>) => void,
-  get: () => GameState,
-  phase: GamePhase,
-  durationSec: number
-) {
-  clearPhaseTimer(get);
-  const deadline = Date.now() + durationSec * 1000;
-  set({ deadline, timeLeftSec: durationSec });
-  const handle = setInterval(() => {
-    const remaining = Math.max(0, Math.round((get().deadline! - Date.now()) / 1000));
-    set({ timeLeftSec: remaining });
-    if (remaining <= 0) {
-      clearInterval(handle);
-      if (phase === "night") resolveNightPhase(set, get);
-      if (phase === "day") resolveVoting(set, get);
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
+      set({ error: (err as Error).message });
+      nextDelay = 4000; // قطعی گذرا نباید هم‌گام‌سازی را بکشد
     }
-  }, 250);
-  set({ timerHandle: handle });
-}
 
-function scheduleNpcNightActions(
-  set: (partial: Partial<GameState>) => void,
-  get: () => GameState
-) {
-  const mafiaNpcs = get().players.filter((p) => !p.isMe && p.role === "SimpleMafia" && p.alive);
-  if (mafiaNpcs.length === 0) return;
-  const delay = NPC_ACT_DELAY_MS[0] + Math.random() * (NPC_ACT_DELAY_MS[1] - NPC_ACT_DELAY_MS[0]);
-  setTimeout(() => {
-    if (get().phase !== "night") return;
-    if (get().nightTarget) return;
-    const candidates = get().players.filter((p) => p.alive && p.role !== "SimpleMafia");
-    if (candidates.length === 0) return;
-    const target = candidates[Math.floor(Math.random() * candidates.length)];
-    set({ nightTarget: target.id });
-  }, delay);
-}
-
-function resolveNightPhase(set: (partial: Partial<GameState>) => void, get: () => GameState) {
-  const { round, nightTarget, players } = get();
-  const killEnabled = round === 1;
-  let updatedPlayers = players;
-  let lastDeath: GameState["lastDeath"] = null;
-
-  if (killEnabled && nightTarget) {
-    updatedPlayers = players.map((p) => (p.id === nightTarget ? { ...p, alive: false } : p));
-    lastDeath = { playerId: nightTarget, cause: "night" };
+    syncTimer = setTimeout(syncLoop, nextDelay);
   }
 
-  set({ players: updatedPlayers, lastDeath, nightTarget: null });
-
-  if (checkWinCondition(set, get)) return;
-
-  set({ phase: "day", votes: {} });
-  startPhaseTimer(set, get, "day", DAY_DURATION);
-  scheduleNpcVotes(set, get);
-  scheduleNpcDayChatter(set, get);
-}
-
-function scheduleNpcVotes(set: (partial: Partial<GameState>) => void, get: () => GameState) {
-  const npcs = get().players.filter((p) => !p.isMe && p.alive);
-  npcs.forEach((npc, i) => {
-    const delay = 1500 + i * 900 + Math.random() * 1500;
-    setTimeout(() => {
-      if (get().phase !== "day") return;
-      if (get().votes[npc.id]) return;
-      const candidates = get().players.filter((p) => p.alive && p.id !== npc.id);
-      if (candidates.length === 0) return;
-      const target = candidates[Math.floor(Math.random() * candidates.length)];
-      set((s) => ({ votes: { ...s.votes, [npc.id]: target.id } }));
-      maybeResolveVotingEarly(set, get);
-    }, delay);
-  });
-}
-
-function scheduleNpcDayChatter(set: (partial: Partial<GameState>) => void, get: () => GameState) {
-  const npcs = get().players.filter((p) => !p.isMe && p.alive);
-  npcs.forEach((npc, i) => {
-    if (Math.random() > 0.6) return;
-    const delay = 800 + i * 700 + Math.random() * 1200;
-    setTimeout(() => {
-      if (get().phase !== "day") return;
-      const line = DAY_CHATTER[Math.floor(Math.random() * DAY_CHATTER.length)];
-      pushChatMessage(set, "dayPublic", npc.id, npc.name, line);
-    }, delay);
-  });
-}
-
-function maybeResolveVotingEarly(
-  set: (partial: Partial<GameState>) => void,
-  get: () => GameState
-) {
-  const alive = get().alivePlayers();
-  const voteCount = Object.keys(get().votes).length;
-  if (get().phase === "day" && voteCount >= alive.length) {
-    resolveVoting(set, get);
+  /** شمارش محلی تایمر بین دو poll تا عدد روی صفحه نپرد */
+  function ensureTicker() {
+    if (get().timerHandle) return;
+    const h = setInterval(() => {
+      const { deadline, phase } = get();
+      if (!deadline || phase === "lobby" || phase === "end") return;
+      const left = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+      if (left !== get().timeLeftSec) set({ timeLeftSec: left });
+    }, 1000);
+    set({ timerHandle: h });
   }
-}
 
-function resolveVoting(set: (partial: Partial<GameState>) => void, get: () => GameState) {
-  clearPhaseTimer(get);
-  const counts = get().voteCounts();
-  const entries = Object.entries(counts);
-  let lastDeath: GameState["lastDeath"] = null;
-  let updatedPlayers = get().players;
+  /** بعد از هر اکشن، فوراً تازه‌سازی کن به‌جای صبر تا poll بعدی */
+  function refreshNow() {
+    if (syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(syncLoop, 120);
+  }
 
-  if (entries.length > 0) {
-    const max = Math.max(...entries.map(([, c]) => c));
-    const topVoted = entries.filter(([, c]) => c === max);
-    if (topVoted.length === 1) {
-      const [eliminatedId] = topVoted[0];
-      updatedPlayers = get().players.map((p) =>
-        p.id === eliminatedId ? { ...p, alive: false } : p
-      );
-      lastDeath = { playerId: eliminatedId, cause: "day" };
+  async function withError(fn: () => Promise<unknown>) {
+    try {
+      await fn();
+      refreshNow();
+    } catch (err) {
+      set({ error: (err as Error).message });
     }
   }
 
-  set({ players: updatedPlayers, lastDeath, votes: {} });
+  return {
+    roomCode: null,
+    capacity: 0,
+    players: [],
+    phase: "lobby",
+    round: 0,
+    deadline: null,
+    timeLeftSec: 0,
+    lastDeath: null,
+    nightTarget: null,
+    votes: {},
+    winningTeam: null,
+    timerHandle: null,
+    chatMessages: [],
+    error: null,
 
-  if (checkWinCondition(set, get)) return;
+    createRoom: async (nickname, capacity) => {
+      const res = await roomApi.create(nickname.trim(), capacity);
+      myPlayerId = res.hostPlayerId;
+      myRoomId = res.roomId;
+      myGameSessionId = null;
+      saveIdentity(res.roomCode, { playerId: res.hostPlayerId, roomId: res.roomId });
+      set({ roomCode: res.roomCode, phase: "lobby", error: null });
+      return res.roomCode;
+    },
 
-  set((s) => ({ phase: "night", round: s.round + 1 }));
-  startPhaseTimer(set, get, "night", NIGHT_DURATION);
-  scheduleNpcNightActions(set, get);
-}
+    joinRoom: async (code, nickname) => {
+      const c = code.trim().toUpperCase();
+      const res = await roomApi.join(c, nickname.trim());
+      myPlayerId = res.playerId;
+      myRoomId = res.roomId;
+      myGameSessionId = null;
+      saveIdentity(c, { playerId: res.playerId, roomId: res.roomId });
+      set({ roomCode: c, phase: "lobby", error: null });
+      return c;
+    },
 
-function checkWinCondition(set: (partial: Partial<GameState>) => void, get: () => GameState): boolean {
-  const alive = get().alivePlayers();
-  const mafiaAlive = alive.filter((p) => p.role === "SimpleMafia").length;
-  const townAlive = alive.length - mafiaAlive;
+    enterRoom: (code) => {
+      const c = code.trim().toUpperCase();
+      // بعد از refresh صفحه، هویت را از localStorage برگردان
+      if (myPlayerId == null) {
+        const saved = loadIdentity(c);
+        if (saved) { myPlayerId = saved.playerId; myRoomId = saved.roomId; }
+      }
+      set({ roomCode: c });
+      ensureTicker();
+      if (syncTimer) clearTimeout(syncTimer);
+      syncLoop();
+    },
 
-  if (mafiaAlive === 0) {
-    clearPhaseTimer(get);
-    set({ phase: "end", winningTeam: "town" });
-    return true;
-  }
-  if (mafiaAlive >= townAlive) {
-    clearPhaseTimer(get);
-    set({ phase: "end", winningTeam: "mafia" });
-    return true;
-  }
-  return false;
-}
+    stopSync: () => {
+      if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
+      syncAbort?.abort();
+      const h = get().timerHandle;
+      if (h) { clearInterval(h); set({ timerHandle: null }); }
+    },
+
+    startGame: () => {
+      if (myRoomId == null || myPlayerId == null) return;
+      void withError(() => roomApi.start(myRoomId!, myPlayerId!));
+    },
+
+    submitNightAction: (targetId) => {
+      if (myGameSessionId == null || myPlayerId == null) return;
+      void withError(() => gameApi.nightAction(myGameSessionId!, myPlayerId!, Number(targetId)));
+    },
+
+    castVote: (targetId) => {
+      if (myGameSessionId == null || myPlayerId == null) return;
+      void withError(() => gameApi.vote(myGameSessionId!, myPlayerId!, Number(targetId)));
+    },
+
+    retractVote: () => {
+      if (myGameSessionId == null || myPlayerId == null) return;
+      void withError(() => gameApi.retractVote(myGameSessionId!, myPlayerId!));
+    },
+
+    requestRematch: () => {
+      if (myGameSessionId == null) return;
+      void withError(async () => {
+        await gameApi.rematch(myGameSessionId!);
+        myGameSessionId = null; // بازی جدید؛ برگرد به رصد روم
+        set({ phase: "lobby", winningTeam: null, votes: {}, round: 0 });
+      });
+    },
+
+    leaveRoom: () => {
+      const code = get().roomCode;
+      if (myRoomId != null && myPlayerId != null) {
+        void roomApi.leave(myRoomId, myPlayerId).catch(() => { /* در حال خروج، مهم نیست */ });
+      }
+      get().stopSync();
+      if (code) { try { localStorage.removeItem(idKey(code)); } catch { /* ignore */ } }
+      myPlayerId = null; myRoomId = null; myGameSessionId = null;
+      set({
+        roomCode: null, players: [], phase: "lobby", round: 0, votes: {},
+        winningTeam: null, nightTarget: null, deadline: null, timeLeftSec: 0,
+        chatMessages: [], error: null,
+      });
+    },
+
+    // ── چت و میکروفن: فعلاً محلی. در مرحله‌ی بعد با SignalR واقعی می‌شوند ──────
+    toggleMic: () => {
+      micMuted = !micMuted;
+      set({ players: get().players.map((p) => (p.isMe ? { ...p, micMuted } : p)) });
+    },
+
+    sendChatMessage: (text) => {
+      const body = text.trim();
+      const me = get().me();
+      if (!body || !me) return;
+      const thread = get().activeThread();
+      if (!thread) return;
+      set({
+        chatMessages: [
+          ...get().chatMessages,
+          {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            thread,
+            senderId: me.id,
+            senderName: me.name,
+            text: body,
+            sentAtMs: Date.now(),
+          },
+        ],
+      });
+    },
+
+    me: () => get().players.find((p) => p.isMe),
+    alivePlayers: () => get().players.filter((p) => p.alive),
+
+    voteCounts: () => {
+      const counts: Record<string, number> = {};
+      for (const target of Object.values(get().votes)) {
+        counts[target] = (counts[target] ?? 0) + 1;
+      }
+      return counts;
+    },
+
+    activeThread: () => {
+      const { phase } = get();
+      const me = get().me();
+      if (!me) return null;
+      if (phase === "lobby") return "lobby";
+      if (!me.alive) return "deadChat";
+      if (phase === "night") return me.role === "SimpleMafia" ? "nightMafia" : null;
+      if (phase === "day") return "dayPublic";
+      return null;
+    },
+  };
+});

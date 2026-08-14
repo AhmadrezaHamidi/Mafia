@@ -10,30 +10,46 @@ export function Landing() {
   const [capacity, setCapacity] = useState(8);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function handleCreate() {
+  async function handleCreate() {
     const name = nickname.trim();
     if (name.length < 2) {
       setError("اسمت باید حداقل ۲ حرف باشه");
       return;
     }
-    createRoom(name, capacity);
-    const roomCode = useGameStore.getState().roomCode!;
-    navigate(`/room/${roomCode}`);
+    setError("");
+    setBusy(true);
+    try {
+      const roomCode = await createRoom(name, capacity);
+      navigate(`/room/${roomCode}`);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function handleJoin() {
+  async function handleJoin() {
     const name = nickname.trim();
     if (name.length < 2) {
       setError("اسمت باید حداقل ۲ حرف باشه");
       return;
     }
-    if (code.trim().length < 4) {
-      setError("کد روم رو کامل وارد کن");
+    if (code.trim().length !== 6) {
+      setError("کد روم باید ۶ کاراکتر باشه");
       return;
     }
-    joinRoom(code.trim(), name);
-    navigate(`/room/${code.trim().toUpperCase()}`);
+    setError("");
+    setBusy(true);
+    try {
+      const roomCode = await joinRoom(code.trim(), name);
+      navigate(`/room/${roomCode}`);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -93,10 +109,11 @@ export function Landing() {
 
         <button
           onClick={handleCreate}
-          className="rounded-lg px-5 py-3 font-bold transition active:scale-[0.98]"
+          disabled={busy}
+          className="rounded-lg px-5 py-3 font-bold transition active:scale-[0.98] disabled:opacity-60"
           style={{ background: "var(--blood)", color: "var(--parchment)" }}
         >
-          ساخت روم جدید
+          {busy ? "..." : "ساخت روم جدید"}
         </button>
 
         <div
@@ -113,7 +130,8 @@ export function Landing() {
           />
           <button
             onClick={handleJoin}
-            className="rounded-md border px-4 py-2 font-bold"
+            disabled={busy}
+            className="rounded-md border px-4 py-2 font-bold disabled:opacity-60"
             style={{ borderColor: "var(--rule)", color: "var(--parchment)" }}
           >
             ورود
