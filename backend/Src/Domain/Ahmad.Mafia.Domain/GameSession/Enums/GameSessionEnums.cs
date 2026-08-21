@@ -10,6 +10,12 @@ public enum Role
     Detective = 3,
     /// <summary>سناریوی «شب‌های مافیا» — رئیس ثابت تیم مافیاست؛ طبق قانون سناریوی اصلی، جلوی کارآگاه بی‌گناه دیده می‌شه.</summary>
     GodFather = 4,
+    /// <summary>سناریوی «انتخابات شهر» — یک شهروند عادیه با یه امتیاز: روزها رأیش دو نفر حساب می‌شه.</summary>
+    Mayor = 5,
+    /// <summary>سناریوی «محافظ سایه» — هر شب از یک نفر محافظت می‌کنه؛ اگه مافیا همون رو هدف بگیره، به‌جاش خودِ بادیگارد کشته می‌شه.</summary>
+    Bodyguard = 6,
+    /// <summary>سناریوی «شکار روانی» — نقشی مستقل و بیرون از تیم مافیا/شهر؛ هر شب یک نفر رو می‌کشه، برنده‌ی تنها می‌خواد بمونه.</summary>
+    SerialKiller = 7,
 }
 
 /// <summary>نوع اکشن شب — چون از فاز ۲ به بعد بیش از یک نقش قابلیت شب داره، دیگه فقط «کشتن» نیست.</summary>
@@ -18,6 +24,8 @@ public enum NightActionType
     Kill = 0,
     Save = 1,
     Investigate = 2,
+    /// <summary>فقط بادیگارد — انتخاب کسی که امشب ازش محافظت می‌کنه.</summary>
+    Guard = 3,
 }
 
 public enum GamePhase
@@ -32,6 +40,8 @@ public enum WinningTeam
     None = 0,
     Town = 1,
     Mafia = 2,
+    /// <summary>فقط سناریوی «شکار روانی» — قاتل زنجیره‌ای تنهای تنها موند و برد.</summary>
+    SerialKiller = 3,
 }
 
 public enum ConnectionState

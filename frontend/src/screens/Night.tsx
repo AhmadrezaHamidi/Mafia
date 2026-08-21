@@ -14,6 +14,7 @@ export function Night() {
   const nightSaveTarget = useGameStore((s) => s.nightSaveTarget);
   const nightInvestigateTarget = useGameStore((s) => s.nightInvestigateTarget);
   const lastInvestigation = useGameStore((s) => s.lastInvestigation);
+  const nightGuardTarget = useGameStore((s) => s.nightGuardTarget);
   const submitNightAction = useGameStore((s) => s.submitNightAction);
   const lastDeath = useGameStore((s) => s.lastDeath);
   const me = useGameStore((s) => s.me());
@@ -28,13 +29,17 @@ export function Night() {
 
   const isDoctor = me?.role === "Doctor";
   const isDetective = me?.role === "Detective";
+  const isBodyguard = me?.role === "Bodyguard";
+  const isMayor = me?.role === "Mayor";
+  // قاتل زنجیره‌ای عضو هیچ تیمی نیست — نیازی به تأیید رئیس نداره، همیشه خودش تصمیم می‌گیره.
+  const isSerialKiller = me?.role === "SerialKiller";
 
   const deadPlayer = lastDeath ? players.find((p) => p.id === lastDeath.playerId) : null;
   const minutes = String(Math.floor(timeLeftSec / 60)).padStart(2, "0");
   const seconds = String(timeLeftSec % 60).padStart(2, "0");
 
-  // فقط یکی از این سه حالت هر لحظه فعاله — بر اساس نقش خودم.
-  const tableProps = canDecideKill
+  // فقط یکی از این حالت‌ها هر لحظه فعاله — بر اساس نقش خودم.
+  const tableProps = canDecideKill || isSerialKiller
     ? {
         selectable: !!me?.alive,
         selectedId: nightTarget,
@@ -53,7 +58,14 @@ export function Night() {
             selectedId: nightInvestigateTarget,
             onSelect: (id: string) => submitNightAction(id, "Investigate"),
           }
-        : { selectable: false };
+        : isBodyguard
+          ? {
+              selectable: !!me?.alive,
+              selectedId: nightGuardTarget,
+              onSelect: (id: string) => submitNightAction(id, "Guard"),
+              allowSelf: true,
+            }
+          : { selectable: false };
 
   const investigatedPlayer = lastInvestigation
     ? players.find((p) => p.id === lastInvestigation.targetId)
@@ -64,6 +76,9 @@ export function Night() {
     if (isMafiaTeam) return "منتظر تصمیم رئیس مافیا — نظرت رو توی چت بگو";
     if (isDoctor) return "یک نفر رو برای نجات امشب انتخاب کن (می‌تونی خودت رو هم انتخاب کنی)";
     if (isDetective) return "یک نفر رو برای استعلام هویت انتخاب کن";
+    if (isBodyguard) return "یک نفر رو برای محافظت امشب انتخاب کن (می‌تونی خودت رو هم انتخاب کنی)";
+    if (isSerialKiller) return "قربانی امشب رو مستقلاً انتخاب کن — نیازی به تأیید کسی نداری";
+    if (isMayor) return "قابلیت شبی نداری — فقط منتظر بمون، فردا رأیت دو نفر حساب می‌شه";
     return "مافیا دارن قربانی امشب رو انتخاب می‌کنن";
   }
 
@@ -76,6 +91,9 @@ export function Night() {
     if (isMafiaTeam) return "نقش تو مافیای ساده‌ست، ولی تصمیم نهایی با رئیسه — توی چت خصوصی نظرت رو بگو.";
     if (isDoctor) return "نقش تو دکتره — هر شب یک نفر رو (حتی خودت رو) می‌تونی نجات بدی.";
     if (isDetective) return "نقش تو کارآگاهه — هر شب هویت واقعی یک نفر رو استعلام می‌گیری.";
+    if (isBodyguard) return "نقش تو بادیگارده — اگه مافیا دقیقاً کسی که ازش محافظت کردی رو بزنه، به‌جاش خودت کشته می‌شی.";
+    if (isSerialKiller) return "نقش تو قاتل زنجیره‌ایه — نه عضو مافیایی نه شهروند، فقط باید تنهای تنها بمونی.";
+    if (isMayor) return "نقش تو شهرداره — یه شهروند عادی با یه امتیاز بزرگ: روزها رأیت دو نفر حساب می‌شه.";
     return "نقش تو شهروند ساده‌ست. فقط منتظر بمون تا صبح بشه.";
   }
 
@@ -140,7 +158,7 @@ export function Night() {
       {me?.alive && me.role && (
         <RoleCard role={me.role} hint={roleHint()} scenario={scenario} />
       )}
-      {(canDecideKill || isDoctor || isDetective) && (
+      {(canDecideKill || isDoctor || isDetective || isBodyguard || isSerialKiller) && (
         <p className="mt-2 mb-2 text-center text-xs" style={{ color: "var(--muted)" }}>
           تا وقتی تایمر تموم نشه می‌تونی نظرت رو عوض کنی
         </p>

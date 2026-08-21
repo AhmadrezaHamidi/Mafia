@@ -1,11 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store/gameStore";
 import { roleByKey } from "../data/roles";
+import { RolePortrait } from "../components/RolePortrait";
 
 const accentColors: Record<string, string> = {
   blood: "var(--blood-bright)",
   town: "var(--town)",
   lamp: "var(--lamp)",
+  neutral: "#b79ee8",
 };
 
 export function End() {
@@ -18,6 +20,14 @@ export function End() {
   const me = useGameStore((s) => s.me());
 
   const isTownWin = winningTeam === "town";
+  const isSerialKillerWin = winningTeam === "serialkiller";
+  const winTitle = isTownWin ? "شهر برد" : isSerialKillerWin ? "قاتل زنجیره‌ای برد" : "مافیا برد";
+  const winColor = isTownWin ? "var(--town)" : isSerialKillerWin ? "#b79ee8" : "var(--blood-bright)";
+  const winSummary = isTownWin
+    ? "همه‌ی مافیاها شناسایی و حذف شدن."
+    : isSerialKillerWin
+      ? "قاتل زنجیره‌ای تنهای تنها موند و همه رو پشت سر گذاشت."
+      : "مافیا تونست شهر رو به تعداد مساوی برسونه.";
 
   function handleExit() {
     leaveRoom();
@@ -30,14 +40,11 @@ export function End() {
         <p className="mb-1 font-mono text-[0.68rem] tracking-[0.12em]" style={{ color: "var(--lamp)" }}>
           پایان بازی
         </p>
-        <div
-          className="text-3xl font-extrabold"
-          style={{ color: isTownWin ? "var(--town)" : "var(--blood-bright)" }}
-        >
-          {isTownWin ? "شهر برد" : "مافیا برد"}
+        <div className="text-3xl font-extrabold" style={{ color: winColor }}>
+          {winTitle}
         </div>
         <p className="mx-auto mt-2 max-w-[22rem] text-sm" style={{ color: "var(--parchment-dim)" }}>
-          {isTownWin ? "همه‌ی مافیاها شناسایی و حذف شدن." : "مافیا تونست شهر رو به تعداد مساوی برسونه."}
+          {winSummary}
         </p>
       </div>
 
@@ -52,11 +59,11 @@ export function End() {
               style={{ background: "var(--table)", borderColor: "var(--rule)" }}
             >
               <div
-                className="mx-auto mb-1 flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold"
-                style={{ background: "var(--table-edge)", borderColor: "var(--rule)" }}
+                className="mx-auto mb-1 h-9 w-9 overflow-hidden rounded-full border-2"
+                style={{ borderColor: color }}
                 title={info?.name}
               >
-                {info?.icon ?? p.name.charAt(0)}
+                {p.role ? <RolePortrait role={p.role} /> : (p.name.charAt(0) ?? "؟")}
               </div>
               <div className="truncate text-[0.66rem]" style={{ color: "var(--parchment-dim)" }}>
                 {p.name}

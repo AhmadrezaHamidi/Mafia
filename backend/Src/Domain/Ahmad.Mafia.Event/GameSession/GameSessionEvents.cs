@@ -17,7 +17,9 @@ public sealed record NightActionSubmittedEvent(
 public sealed record NightPhaseResolvedEvent(
     long GameSessionId,
     int Round,
-    long? EliminatedPlayerId
+    long? EliminatedPlayerId,
+    /// <summary>فقط وقتی هم‌زمان دو نفر یک شب حذف بشن (مثلاً مافیا + قاتل زنجیره‌ای مستقل).</summary>
+    long? SecondEliminatedPlayerId = null
 ) : IEvent;
 
 public sealed record VoteCastEvent(

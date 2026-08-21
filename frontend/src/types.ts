@@ -1,6 +1,14 @@
-export type Role = "SimpleCitizen" | "SimpleMafia" | "Doctor" | "Detective" | "GodFather";
+export type Role =
+  | "SimpleCitizen"
+  | "SimpleMafia"
+  | "Doctor"
+  | "Detective"
+  | "GodFather"
+  | "Mayor"
+  | "Bodyguard"
+  | "SerialKiller";
 
-export type Scenario = "RussianMafia" | "MafiaNights";
+export type Scenario = "RussianMafia" | "MafiaNights" | "MayorElection" | "ShadowGuard" | "SerialHunt";
 
 export type GamePhase = "lobby" | "night" | "day" | "end";
 
@@ -25,7 +33,7 @@ export interface InvestigationResult {
   isMafia: boolean;
 }
 
-export type WinningTeam = "town" | "mafia" | null;
+export type WinningTeam = "town" | "mafia" | "serialkiller" | null;
 
 export type ChatThreadType = "lobby" | "dayPublic" | "nightMafia" | "deadChat";
 

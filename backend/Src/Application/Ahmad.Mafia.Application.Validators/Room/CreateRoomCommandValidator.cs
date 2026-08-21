@@ -15,7 +15,7 @@ public sealed class CreateRoomCommandValidator : AbstractValidator<CreateRoomCom
             .InclusiveBetween(6, 15).WithMessage("ظرفیت روم باید بین ۶ تا ۱۵ نفر باشد.");
 
         RuleFor(x => x.Scenario)
-            .Must(v => v is "RussianMafia" or "MafiaNights")
+            .Must(v => v is "RussianMafia" or "MafiaNights" or "MayorElection" or "ShadowGuard" or "SerialHunt")
             .WithMessage("سناریوی بازی نامعتبر است.");
     }
 }

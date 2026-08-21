@@ -1,14 +1,17 @@
 // گالری نقش‌ها — یه modal که هرکسی هر وقت خواست (قبل از بازی، توی لابی، وسط بازی)
-// می‌تونه نقش‌های هر دو سناریو رو با توضیحاتشون ببینه. محتوا از data/roles.ts می‌آد.
+// می‌تونه نقش‌های هر سناریو رو ببینه. لیست جمع‌شده‌ست؛ روی هر نقش که بزنی، همون
+// یکی باز می‌شه و عکس بزرگ + توضیح کاملش رو نشون می‌ده. محتوا از data/roles.ts می‌آد.
 
 import { useEffect, useState } from "react";
 import { rolesByScenario, scenarios, mafiaLeaderNote, type RoleInfo } from "../data/roles";
 import type { Scenario } from "../types";
+import { RolePortrait } from "./RolePortrait";
 
 const accentColors: Record<RoleInfo["accent"], { bg: string; fg: string }> = {
   blood: { bg: "rgba(156,43,50,0.2)", fg: "var(--blood-bright)" },
   town: { bg: "rgba(79,143,130,0.2)", fg: "var(--town)" },
   lamp: { bg: "rgba(212,165,74,0.2)", fg: "var(--lamp)" },
+  neutral: { bg: "rgba(107,78,142,0.22)", fg: "#b79ee8" },
 };
 
 export function RolesGallery({
@@ -21,8 +24,9 @@ export function RolesGallery({
   initialScenario?: Scenario;
 }) {
   const [tab, setTab] = useState<Scenario>(initialScenario);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
   useEffect(() => {
-    if (open) setTab(initialScenario);
+    if (open) { setTab(initialScenario); setExpandedKey(null); }
   }, [open, initialScenario]);
   if (!open) return null;
 
@@ -54,12 +58,12 @@ export function RolesGallery({
           </button>
         </div>
 
-        <div className="mb-4 flex gap-2">
+        <div className="mb-4 grid grid-cols-3 gap-2">
           {scenarios.map((s) => (
             <button
               key={s.key}
-              onClick={() => setTab(s.key)}
-              className="flex-1 rounded-lg border px-2 py-2 text-xs font-bold transition"
+              onClick={() => { setTab(s.key); setExpandedKey(null); }}
+              className="rounded-lg border px-2 py-2 text-[0.68rem] font-bold transition"
               style={
                 tab === s.key
                   ? { background: "var(--blood)", borderColor: "var(--blood)", color: "var(--parchment)" }
@@ -75,40 +79,63 @@ export function RolesGallery({
           {scenarios.find((s) => s.key === tab)?.description}
         </p>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {list.map((r) => {
             const accent = accentColors[r.accent];
+            const isOpen = expandedKey === r.key;
             return (
               <div
                 key={r.key}
-                className="rounded-xl border p-4"
-                style={{ borderColor: "var(--rule)", background: "var(--table-edge)" }}
+                className="overflow-hidden rounded-xl border transition"
+                style={{ borderColor: isOpen ? accent.fg : "var(--rule)", background: "var(--table-edge)" }}
               >
-                <div className="mb-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setExpandedKey(isOpen ? null : r.key)}
+                  className="flex w-full items-center gap-3 p-3 text-start"
+                  aria-expanded={isOpen}
+                >
                   <span
-                    className="flex h-10 w-10 flex-none items-center justify-center rounded-full text-xl"
-                    style={{ background: accent.bg }}
-                    aria-hidden
+                    className="flex-none overflow-hidden rounded-full border-2"
+                    style={{ width: 40, height: 40, borderColor: accent.fg }}
                   >
-                    {r.icon}
+                    <RolePortrait role={r.key.split("-")[0]} />
                   </span>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="font-bold">{r.name}</div>
                     <span
-                      className="rounded-full px-2 py-0.5 font-mono text-[0.62rem] tracking-wide"
+                      className="rounded-full px-2 py-0.5 font-mono text-[0.6rem] tracking-wide"
                       style={{ background: accent.bg, color: accent.fg }}
                     >
                       تیم {r.team}
                     </span>
                   </div>
-                </div>
-                <p className="mb-1.5 text-sm" style={{ color: "var(--parchment-dim)" }}>{r.summary}</p>
-                <p className="mb-1 text-xs" style={{ color: "var(--muted)" }}>
-                  <b style={{ color: "var(--parchment-dim)" }}>قابلیت شب: </b>{r.nightAbility}
-                </p>
-                <p className="text-xs" style={{ color: "var(--muted)" }}>
-                  <b style={{ color: "var(--parchment-dim)" }}>شرط برد: </b>{r.winCondition}
-                </p>
+                  <span
+                    className="flex-none text-sm transition-transform"
+                    style={{ transform: isOpen ? "rotate(180deg)" : "none", color: "var(--muted)" }}
+                    aria-hidden
+                  >
+                    ▾
+                  </span>
+                </button>
+
+                {isOpen && (
+                  <div className="border-t px-4 pb-4 pt-3" style={{ borderColor: "var(--rule)" }}>
+                    <div
+                      className="mx-auto mb-3 overflow-hidden rounded-2xl border-2"
+                      style={{ width: 120, height: 120, borderColor: accent.fg }}
+                    >
+                      <RolePortrait role={r.key.split("-")[0]} />
+                    </div>
+                    <p className="mb-1.5 text-sm" style={{ color: "var(--parchment-dim)" }}>{r.summary}</p>
+                    <p className="mb-1 text-xs" style={{ color: "var(--muted)" }}>
+                      <b style={{ color: "var(--parchment-dim)" }}>قابلیت شب: </b>{r.nightAbility}
+                    </p>
+                    <p className="text-xs" style={{ color: "var(--muted)" }}>
+                      <b style={{ color: "var(--parchment-dim)" }}>شرط برد: </b>{r.winCondition}
+                    </p>
+                  </div>
+                )}
               </div>
             );
           })}

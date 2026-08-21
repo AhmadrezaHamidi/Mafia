@@ -24,6 +24,9 @@ public sealed class GameSessionConfiguration : IEntityTypeConfiguration<GameSess
         builder.Property(x => x.NightSaveTargetPlayerId);
         builder.Property(x => x.NightInvestigateTargetPlayerId);
         builder.Property(x => x.NightInvestigatorPlayerId);
+        builder.Property(x => x.NightGuardTargetPlayerId);
+        builder.Property(x => x.NightGuardianPlayerId);
+        builder.Property(x => x.NightSerialKillerTargetPlayerId);
 
         builder.Property(x => x.Phase).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(x => x.WinningTeam).HasConversion<string>().HasMaxLength(20).IsRequired();

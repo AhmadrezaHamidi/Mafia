@@ -140,13 +140,13 @@ export function Landing() {
             style={{ accentColor: "var(--blood)" }}
           />
 
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {scenarios.map((s) => (
               <button
                 key={s.key}
                 type="button"
                 onClick={() => setScenario(s.key)}
-                className="flex-1 rounded-lg border px-2 py-2 text-xs font-bold transition"
+                className="rounded-lg border px-2 py-2 text-xs font-bold transition"
                 style={
                   scenario === s.key
                     ? { background: "var(--blood)", borderColor: "var(--blood)", color: "var(--parchment)" }

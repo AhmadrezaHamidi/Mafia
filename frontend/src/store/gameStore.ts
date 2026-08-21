@@ -65,6 +65,7 @@ function mapPhase(serverPhase: string): GamePhase {
 function mapWinner(team: string | null | undefined): WinningTeam {
   if (!team) return null;
   const t = team.toLowerCase();
+  if (t.includes("serialkiller")) return "serialkiller";
   if (t.includes("mafia")) return "mafia";
   if (t.includes("town") || t.includes("citizen")) return "town";
   return null;
@@ -90,6 +91,8 @@ interface GameState {
   nightInvestigateTarget: string | null;
   /** فقط برای کارآگاه — نتیجه‌ی آخرین استعلام */
   lastInvestigation: InvestigationResult | null;
+  /** فقط برای بادیگارد — کسی که این شب ازش محافظت می‌کنه */
+  nightGuardTarget: string | null;
   votes: Record<string, string>;
   winningTeam: WinningTeam;
   timerHandle: ReturnType<typeof setInterval> | null;
@@ -107,7 +110,7 @@ interface GameState {
   stopSync: () => void;
   startGame: () => void;
   /** actionType پیش‌فرض بر اساس نقش خودم تشخیص داده می‌شه (Night.tsx صریح می‌فرسته) */
-  submitNightAction: (targetId: string, actionType?: "Kill" | "Save" | "Investigate") => void;
+  submitNightAction: (targetId: string, actionType?: "Kill" | "Save" | "Investigate" | "Guard") => void;
   castVote: (targetId: string) => void;
   retractVote: () => void;
   toggleMic: () => void;
@@ -221,6 +224,7 @@ export const useGameStore = create<GameState>((set, get) => {
           lastInvestigation: st.myLastInvestigation
             ? { targetId: String(st.myLastInvestigation.targetId), isMafia: st.myLastInvestigation.isMafia }
             : null,
+          nightGuardTarget: st.myNightGuardTarget != null ? String(st.myNightGuardTarget) : null,
           votes,
           players: st.players.map<Player>((p) => ({
             id: String(p.playerId),
@@ -315,6 +319,7 @@ export const useGameStore = create<GameState>((set, get) => {
     nightSaveTarget: null,
     nightInvestigateTarget: null,
     lastInvestigation: null,
+    nightGuardTarget: null,
     votes: {},
     winningTeam: null,
     timerHandle: null,
@@ -432,7 +437,7 @@ export const useGameStore = create<GameState>((set, get) => {
       set({
         roomCode: null, players: [], phase: "lobby", round: 0, votes: {},
         winningTeam: null, nightTarget: null, nightSaveTarget: null,
-        nightInvestigateTarget: null, lastInvestigation: null,
+        nightInvestigateTarget: null, lastInvestigation: null, nightGuardTarget: null,
         deadline: null, timeLeftSec: 0,
         chatMessages: [], error: null,
       });

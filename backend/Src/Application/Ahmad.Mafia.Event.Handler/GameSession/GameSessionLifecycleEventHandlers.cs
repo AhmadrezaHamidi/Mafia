@@ -27,8 +27,8 @@ public sealed class NightPhaseResolvedEventHandler(ILogger<NightPhaseResolvedEve
 {
     public Task HandleAsync(NightPhaseResolvedEvent @event, CancellationToken token)
     {
-        logger.LogInformation("بازی {GameSessionId}: پایان شب راند {Round} — حذف‌شده: {EliminatedPlayerId}.",
-            @event.GameSessionId, @event.Round, @event.EliminatedPlayerId);
+        logger.LogInformation("بازی {GameSessionId}: پایان شب راند {Round} — حذف‌شده: {EliminatedPlayerId} / {SecondEliminatedPlayerId}.",
+            @event.GameSessionId, @event.Round, @event.EliminatedPlayerId, @event.SecondEliminatedPlayerId);
         return Task.CompletedTask;
     }
 }

@@ -31,6 +31,8 @@ public sealed record GetGameStateQueryResponse(
     long? MyNightInvestigateTarget,
     /// <summary>فقط برای کارآگاه — نتیجه‌ی آخرین استعلامی که تا الان انجام داده (بین شب‌ها هم می‌مونه).</summary>
     InvestigationResultView? MyLastInvestigation,
+    /// <summary>فقط برای بادیگارد — کسی که این شب ازش محافظت می‌کنه.</summary>
+    long? MyNightGuardTarget,
     IReadOnlyList<GamePlayerView> Players,
     IReadOnlyDictionary<long, long>? Votes
 );

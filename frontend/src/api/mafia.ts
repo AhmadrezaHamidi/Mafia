@@ -77,6 +77,8 @@ export interface GameStateView {
   myNightInvestigateTarget: number | null;
   /** فقط برای کارآگاه — نتیجه‌ی آخرین استعلام (بین شب‌ها هم می‌مونه) */
   myLastInvestigation: InvestigationResultView | null;
+  /** فقط برای بادیگارد */
+  myNightGuardTarget: number | null;
   players: GamePlayerView[];
   /** voterId → targetId */
   votes: Record<number, number> | null;
@@ -100,7 +102,7 @@ export const roomApi = {
     hostNickname: string,
     capacity: number,
     visibility: "Public" | "Private" = "Private",
-    scenario: "RussianMafia" | "MafiaNights" = "RussianMafia",
+    scenario: "RussianMafia" | "MafiaNights" | "MayorElection" | "ShadowGuard" | "SerialHunt" = "RussianMafia",
   ) =>
     request<CreateRoomResult>("/Room/", {
       method: "POST",
@@ -140,7 +142,7 @@ export const gameApi = {
     gameSessionId: number,
     actorId: number,
     targetId: number,
-    actionType: "Kill" | "Save" | "Investigate" = "Kill",
+    actionType: "Kill" | "Save" | "Investigate" | "Guard" = "Kill",
   ) =>
     request<number>(`/Game/${gameSessionId}/Night/Action`, {
       method: "POST",

@@ -13,11 +13,18 @@ internal static class GameSessionQueryMapper
         var isMafiaTeam = me?.Role is Role.SimpleMafia or Role.GodFather;
         var isDoctor = me?.Role == Role.Doctor;
         var isDetective = me?.Role == Role.Detective;
+        var isBodyguard = me?.Role == Role.Bodyguard;
+        var isSerialKiller = me?.Role == Role.SerialKiller;
         var atNight = session.Phase == GamePhase.Night;
 
-        long? myNightTarget = atNight && isMafiaTeam ? session.NightTargetPlayerId : null;
+        long? myNightTarget = atNight && isMafiaTeam
+            ? session.NightTargetPlayerId
+            : atNight && isSerialKiller
+                ? session.NightSerialKillerTargetPlayerId
+                : null;
         long? myNightSaveTarget = atNight && isDoctor ? session.NightSaveTargetPlayerId : null;
         long? myNightInvestigateTarget = atNight && isDetective ? session.NightInvestigateTargetPlayerId : null;
+        long? myNightGuardTarget = atNight && isBodyguard ? session.NightGuardTargetPlayerId : null;
 
         InvestigationResultView? myLastInvestigation =
             isDetective && me?.LastInvestigationTargetId is { } targetId && me.LastInvestigationIsMafia is { } isMafia
@@ -39,6 +46,7 @@ internal static class GameSessionQueryMapper
             MyNightSaveTarget: myNightSaveTarget,
             MyNightInvestigateTarget: myNightInvestigateTarget,
             MyLastInvestigation: myLastInvestigation,
+            MyNightGuardTarget: myNightGuardTarget,
             Players: session.Players
                 .Select(p => new GamePlayerView(p.Id, p.Nickname, p.IsAlive, p.Connection.ToString()))
                 .ToList(),
