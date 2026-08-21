@@ -14,6 +14,7 @@ public sealed class Room : AggregateRoot<long>
     public string RoomCode { get; private set; } = string.Empty;
     public int Capacity { get; private set; }
     public RoomStatus Status { get; private set; }
+    public RoomVisibility Visibility { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
 
     public IReadOnlyCollection<RoomMember> Members => _members.AsReadOnly();
@@ -28,6 +29,7 @@ public sealed class Room : AggregateRoot<long>
         RoomCode = arg.RoomCode;
         Capacity = arg.Capacity;
         Status = RoomStatus.WaitingForPlayers;
+        Visibility = arg.Visibility;
         CreatedAtUtc = DateTime.UtcNow;
     }
 

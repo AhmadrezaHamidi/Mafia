@@ -1,4 +1,5 @@
 using Ahmad.Mafia.Domain.Repositories;
+using Ahmad.Mafia.Domain.Room.Enums;
 using AhmadBase.Persistence.NHiLoHelper;
 using Microsoft.EntityFrameworkCore;
 using RoomAggregate = Ahmad.Mafia.Domain.Room.Aggregates.Room;
@@ -14,6 +15,13 @@ public sealed class RoomRepository(
 
     public async Task<RoomAggregate?> GetByCodeAsync(string roomCode, CancellationToken token = default)
         => await context.Rooms.Include(x => x.Members).FirstOrDefaultAsync(x => x.RoomCode == roomCode, token);
+
+    public async Task<RoomAggregate?> GetOpenPublicRoomAsync(CancellationToken token = default)
+        => await context.Rooms
+            .Include(x => x.Members)
+            .Where(x => x.Visibility == RoomVisibility.Public && x.Status == RoomStatus.WaitingForPlayers)
+            .OrderBy(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync(token);
 
     public async Task AddAsync(RoomAggregate room, CancellationToken token = default)
         => await context.Rooms.AddAsync(room, token);

@@ -11,7 +11,11 @@ export interface Player {
   connected: boolean;
   micMuted: boolean;
   role?: Role;
+  /** فقط برای خودم پر می‌شه، وقتی بیش از یک مافیا زنده باشه */
+  isMafiaLeader?: boolean;
 }
+
+export type RoomVisibility = "Public" | "Private";
 
 export type WinningTeam = "town" | "mafia" | null;
 

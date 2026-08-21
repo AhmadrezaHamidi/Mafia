@@ -1,3 +1,5 @@
+using Ahmad.Mafia.Domain.Room.Enums;
+
 namespace Ahmad.Mafia.Domain.Room.Args;
 
 public sealed record CreateRoomArg(
@@ -5,7 +7,8 @@ public sealed record CreateRoomArg(
     string RoomCode,
     long HostPlayerId,
     string HostNickname,
-    int Capacity
+    int Capacity,
+    RoomVisibility Visibility = RoomVisibility.Private
 );
 
 public sealed record JoinRoomArg(

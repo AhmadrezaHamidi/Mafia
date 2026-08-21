@@ -8,6 +8,7 @@ public static class RoomConstants
 
         public const string CreateRoom = "/";
         public const string JoinRoom = "/Join";
+        public const string QuickJoin = "/QuickJoin";
         public const string GetRoom = "/{code}";
         public const string StartRoom = "/{id}/Start";
         public const string LeaveRoom = "/{id}/Members/{playerId}";
@@ -17,6 +18,7 @@ public static class RoomConstants
     {
         public const string CreateRoom = "CreateRoom";
         public const string JoinRoom = "JoinRoom";
+        public const string QuickJoin = "QuickJoin";
         public const string GetRoom = "GetRoom";
         public const string StartRoom = "StartRoom";
         public const string LeaveRoom = "LeaveRoom";
@@ -33,6 +35,11 @@ public static class RoomConstants
         {
             public const string Summary = "ورود به روم با کد";
             public const string Description = "با کد ۶ کاراکتری روم، یک بازیکن جدید به Lobby اضافه می‌کند.";
+        }
+        public static class QuickJoin
+        {
+            public const string Summary = "بازی سریع (matchmaking عمومی)";
+            public const string Description = "به یک روم عمومیِ منتظرِ بازیکن وصل می‌کند یا اگر نبود، یکی می‌سازد. پر شدن ظرفیت یعنی شروع خودکار بازی.";
         }
         public static class GetRoom
         {

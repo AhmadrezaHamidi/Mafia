@@ -20,6 +20,7 @@ public sealed record GetGameStateQueryResponse(
     int TimeLeftSeconds,
     string? MyRole,
     bool IAmAlive,
+    bool? MyIsMafiaLeader,
     long? MyNightTarget,
     IReadOnlyList<GamePlayerView> Players,
     IReadOnlyDictionary<long, long>? Votes

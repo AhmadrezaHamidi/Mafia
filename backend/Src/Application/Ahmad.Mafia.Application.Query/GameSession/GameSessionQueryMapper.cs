@@ -21,6 +21,7 @@ internal static class GameSessionQueryMapper
             TimeLeftSeconds: timeLeft,
             MyRole: me?.Role.ToString(),
             IAmAlive: me?.IsAlive ?? false,
+            MyIsMafiaLeader: isMafia ? me?.IsMafiaLeader : null,
             MyNightTarget: myNightTarget,
             Players: session.Players
                 .Select(p => new GamePlayerView(p.Id, p.Nickname, p.IsAlive, p.Connection.ToString()))

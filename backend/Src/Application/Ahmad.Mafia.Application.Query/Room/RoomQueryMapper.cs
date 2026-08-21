@@ -9,6 +9,7 @@ internal static class RoomQueryMapper
         RoomCode: room.RoomCode,
         Capacity: room.Capacity,
         Status: room.Status.ToString(),
+        Visibility: room.Visibility.ToString(),
         Members: room.Members
             .Select(m => new GetRoomMemberResponse(m.Id, m.Nickname, m.IsHost))
             .ToList(),

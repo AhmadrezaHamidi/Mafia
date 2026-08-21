@@ -64,6 +64,8 @@ function mapWinner(team: string | null | undefined): WinningTeam {
 interface GameState {
   roomCode: string | null;
   capacity: number;
+  /** "Public" | "Private" — تا Lobby نحوه‌ی نمایش (لینک دعوت یا پیام صف) رو تعیین کنه */
+  visibility: string;
   players: Player[];
   phase: GamePhase;
   round: number;
@@ -81,6 +83,8 @@ interface GameState {
 
   createRoom: (nickname: string, capacity: number) => Promise<string>;
   joinRoom: (code: string, nickname: string) => Promise<string>;
+  /** «بازی سریع» — نیازی به کد نداره، سرور خودش وصل می‌کنه */
+  quickJoin: (nickname: string) => Promise<string>;
   /** شروع هم‌گام‌سازی برای یک روم — صفحه‌ی Room موقع mount صدا می‌زند */
   enterRoom: (code: string) => void;
   stopSync: () => void;
@@ -132,6 +136,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
         set({
           capacity: room.capacity,
+          visibility: room.visibility,
           phase: room.gameSessionId ? get().phase : "lobby",
           players: room.members.map<Player>((m) => ({
             id: String(m.playerId),
@@ -200,6 +205,7 @@ export const useGameStore = create<GameState>((set, get) => {
             connected: p.connection === "Connected",
             micMuted: p.playerId === myPlayerId ? micMuted : false,
             role: p.playerId === myPlayerId ? (st.myRole as Role | undefined) : undefined,
+            isMafiaLeader: p.playerId === myPlayerId ? (st.myIsMafiaLeader ?? undefined) : undefined,
           })),
           error: null,
         });
@@ -271,6 +277,7 @@ export const useGameStore = create<GameState>((set, get) => {
   return {
     roomCode: null,
     capacity: 0,
+    visibility: "Private",
     players: [],
     phase: "lobby",
     round: 0,
@@ -286,12 +293,22 @@ export const useGameStore = create<GameState>((set, get) => {
     error: null,
 
     createRoom: async (nickname, capacity) => {
-      const res = await roomApi.create(nickname.trim(), capacity);
+      const res = await roomApi.create(nickname.trim(), capacity, "Private");
       myPlayerId = res.hostPlayerId;
       myRoomId = res.roomId;
       myGameSessionId = null;
       saveIdentity(res.roomCode, { playerId: res.hostPlayerId, roomId: res.roomId });
-      set({ roomCode: res.roomCode, phase: "lobby", error: null });
+      set({ roomCode: res.roomCode, phase: "lobby", visibility: "Private", error: null });
+      return res.roomCode;
+    },
+
+    quickJoin: async (nickname) => {
+      const res = await roomApi.quickJoin(nickname.trim());
+      myPlayerId = res.playerId;
+      myRoomId = res.roomId;
+      myGameSessionId = null;
+      saveIdentity(res.roomCode, { playerId: res.playerId, roomId: res.roomId });
+      set({ roomCode: res.roomCode, phase: "lobby", visibility: "Public", error: null });
       return res.roomCode;
     },
 

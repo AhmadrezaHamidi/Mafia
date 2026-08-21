@@ -60,6 +60,7 @@ public sealed class GamePlayerConfiguration : IEntityTypeConfiguration<GamePlaye
         builder.Property(x => x.GameSessionId).IsRequired();
         builder.Property(x => x.Nickname).HasMaxLength(50).IsRequired();
         builder.Property(x => x.IsAlive).IsRequired();
+        builder.Property(x => x.IsMafiaLeader).IsRequired();
 
         builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(x => x.Connection).HasConversion<string>().HasMaxLength(20).IsRequired();

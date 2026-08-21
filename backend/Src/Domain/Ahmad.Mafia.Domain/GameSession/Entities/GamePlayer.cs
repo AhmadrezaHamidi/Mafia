@@ -11,6 +11,12 @@ public sealed class GamePlayer : TEntity<long>
     public bool IsAlive { get; private set; } = true;
     public ConnectionState Connection { get; private set; } = ConnectionState.Connected;
 
+    /// <summary>
+    /// وقتی بیش از یک مافیا زنده باشد، فقط رئیس (Leader) اکشن شب را نهایی می‌کند —
+    /// بقیه‌ی مافیا فقط از طریق کانال چت nightMafia نظر می‌دهند.
+    /// </summary>
+    public bool IsMafiaLeader { get; private set; }
+
     private GamePlayer() { }
 
     internal GamePlayer(long playerId, long gameSessionId, string nickname, Role role)
@@ -29,7 +35,10 @@ public sealed class GamePlayer : TEntity<long>
     {
         IsAlive = true;
         Connection = ConnectionState.Connected;
+        IsMafiaLeader = false;
     }
 
     internal void AssignRole(Role role) => Role = role;
+
+    internal void SetMafiaLeader(bool value) => IsMafiaLeader = value;
 }

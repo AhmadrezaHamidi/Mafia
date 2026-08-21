@@ -26,6 +26,10 @@ public sealed class RoomEndpoints : IEndpoint
             .WithName(RoomConstants.Names.JoinRoom)
             .WithSummary(RoomConstants.Docs.JoinRoom.Summary);
 
+        group.MapPost(RoomConstants.Routes.QuickJoin, QuickJoin)
+            .WithName(RoomConstants.Names.QuickJoin)
+            .WithSummary(RoomConstants.Docs.QuickJoin.Summary);
+
         group.MapGet(RoomConstants.Routes.GetRoom, GetRoom)
             .WithName(RoomConstants.Names.GetRoom)
             .WithSummary(RoomConstants.Docs.GetRoom.Summary);
@@ -51,6 +55,13 @@ public sealed class RoomEndpoints : IEndpoint
     {
         var result = await bus.Dispatch<JoinRoomResult>(command, ct);
         return Results.Ok(ApiResponse<JoinRoomResult>.Ok(result));
+    }
+
+    private static async Task<IResult> QuickJoin(
+        [FromBody] QuickJoinCommand command, ICommandBus bus, CancellationToken ct)
+    {
+        var result = await bus.Dispatch<QuickJoinResult>(command, ct);
+        return Results.Ok(ApiResponse<QuickJoinResult>.Ok(result));
     }
 
     private static async Task<IResult> GetRoom(

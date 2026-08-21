@@ -9,6 +9,7 @@ public sealed record GetRoomQueryResponse(
     string RoomCode,
     int Capacity,
     string Status,
+    string Visibility,
     IReadOnlyList<GetRoomMemberResponse> Members,
     long? GameSessionId
 );

@@ -15,6 +15,10 @@ export function Night() {
   const me = useGameStore((s) => s.me());
 
   const isMafia = me?.role === "SimpleMafia";
+  // اگه بیش از یک مافیا زنده باشه، فقط رئیس می‌تونه اکشن رو ثبت کنه —
+  // سرور isMafiaLeader رو فقط برای خودِ بازیکنِ مافیا پر می‌کنه (سند ۰۶: قانون فیلتر خروجی).
+  const isMafiaLeader = me?.isMafiaLeader === true;
+  const canDecide = isMafia && isMafiaLeader;
   const deadPlayer = lastDeath ? players.find((p) => p.id === lastDeath.playerId) : null;
   const minutes = String(Math.floor(timeLeftSec / 60)).padStart(2, "0");
   const seconds = String(timeLeftSec % 60).padStart(2, "0");
@@ -31,7 +35,11 @@ export function Night() {
         </p>
         <h2 className="text-2xl font-extrabold">شهر خوابیده…</h2>
         <p className="mt-1 text-sm" style={{ color: "var(--parchment-dim)" }}>
-          {isMafia ? "قربانی امشب رو انتخاب کن" : "مافیا دارن قربانی امشب رو انتخاب می‌کنن"}
+          {canDecide
+            ? "قربانی امشب رو انتخاب کن"
+            : isMafia
+              ? "منتظر تصمیم رئیس مافیا — نظرت رو توی چت بگو"
+              : "مافیا دارن قربانی امشب رو انتخاب می‌کنن"}
         </p>
       </div>
 
@@ -50,7 +58,7 @@ export function Night() {
 
       <Table
         players={players}
-        selectable={isMafia && me?.alive}
+        selectable={canDecide && me?.alive}
         selectedId={nightTarget}
         onSelect={submitNightAction}
         center={
@@ -69,13 +77,15 @@ export function Night() {
         <RoleCard
           role={me.role}
           hint={
-            isMafia
-              ? "نقش تو مافیای ساده‌ست. روی یکی از هم‌بازی‌ها بزن تا هدف امشب رو انتخاب کنی."
-              : "نقش تو شهروند ساده‌ست. فقط منتظر بمون تا صبح بشه."
+            canDecide
+              ? "نقش تو مافیای ساده‌ست و رئیسی — روی یکی از هم‌بازی‌ها بزن تا هدف امشب رو انتخاب کنی."
+              : isMafia
+                ? "نقش تو مافیای ساده‌ست، ولی تصمیم نهایی با رئیسه — توی چت خصوصی نظرت رو بگو."
+                : "نقش تو شهروند ساده‌ست. فقط منتظر بمون تا صبح بشه."
           }
         />
       )}
-      {isMafia && (
+      {canDecide && (
         <p className="mt-2 mb-2 text-center text-xs" style={{ color: "var(--muted)" }}>
           تا وقتی تایمر تموم نشه می‌تونی نظرت رو عوض کنی
         </p>

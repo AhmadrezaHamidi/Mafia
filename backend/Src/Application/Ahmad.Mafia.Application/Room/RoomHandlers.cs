@@ -2,6 +2,7 @@ using Ahmad.Mafia.Application.Contract.Room.Commands;
 using Ahmad.Mafia.Application.Room.Mapper;
 using Ahmad.Mafia.Domain.Repositories;
 using Ahmad.Mafia.Domain.Room.Args;
+using Ahmad.Mafia.Domain.Room.Enums;
 using Ahmad.Mafia.Domain.Room.Exceptions;
 using Ahmad.Mafia.Persistence.EF;
 using RoomAgg = Ahmad.Mafia.Domain.Room;
@@ -14,8 +15,11 @@ public sealed class RoomHandlers(
     ICommandHandler<CreateRoomCommand, CreateRoomResult>,
     ICommandHandler<JoinRoomCommand, JoinRoomResult>,
     ICommandHandler<LeaveRoomCommand, long>,
-    ICommandHandler<StartRoomCommand, long>
+    ICommandHandler<StartRoomCommand, long>,
+    ICommandHandler<QuickJoinCommand, QuickJoinResult>
 {
+    private const int DefaultPublicCapacity = 8;
+
     public async Task<CreateRoomResult> Handle(CreateRoomCommand command, CancellationToken token)
     {
         var id = await repository.GetNextIdAsync();
@@ -66,6 +70,36 @@ public sealed class RoomHandlers(
         await repository.UpdateAsync(room, token);
         await context.CommitAsync(token);
         return room.Id;
+    }
+
+    public async Task<QuickJoinResult> Handle(QuickJoinCommand command, CancellationToken token)
+    {
+        var openRoom = await repository.GetOpenPublicRoomAsync(token);
+
+        if (openRoom is not null)
+        {
+            var joinerId = await repository.GetNextIdAsync();
+            openRoom.Join(new JoinRoomArg(joinerId, command.Nickname));
+
+            await repository.UpdateAsync(openRoom, token);
+            await context.CommitAsync(token);
+
+            return new QuickJoinResult(openRoom.Id, openRoom.RoomCode, joinerId, IsHost: false);
+        }
+
+        // هیچ روم عمومیِ باز نبود — خودمون یکی می‌سازیم و اولین نفرش می‌شیم
+        var id = await repository.GetNextIdAsync();
+        var hostPlayerId = await repository.GetNextIdAsync();
+        var roomCode = GenerateRoomCode();
+
+        var arg = new RoomAgg.Args.CreateRoomArg(
+            id, roomCode, hostPlayerId, command.Nickname, DefaultPublicCapacity, RoomVisibility.Public);
+        var room = RoomAgg.Aggregates.Room.Create(arg);
+
+        await repository.AddAsync(room, token);
+        await context.CommitAsync(token);
+
+        return new QuickJoinResult(room.Id, room.RoomCode, hostPlayerId, IsHost: true);
     }
 
     private static string GenerateRoomCode()

@@ -6,5 +6,7 @@ public sealed record CreateRoomResult(long RoomId, string RoomCode, long HostPla
 
 public record CreateRoomCommand(
     string HostNickname,
-    int Capacity
+    int Capacity,
+    /// <summary>"Public" | "Private" — ورودی رشته‌ای است تا این لایه به enum دامنه وابسته نشود.</summary>
+    string Visibility = "Private"
 ) : ICommand<CreateRoomResult>;

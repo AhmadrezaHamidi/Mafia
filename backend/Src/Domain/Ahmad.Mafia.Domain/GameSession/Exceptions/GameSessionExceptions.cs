@@ -36,3 +36,8 @@ public sealed class NotEnoughPlayersException : BusinessException
 {
     public NotEnoughPlayersException() : base("برای شروع بازی حداقل ۶ بازیکن لازم است.") { }
 }
+
+public sealed class MafiaLeaderRequiredException : BusinessException
+{
+    public MafiaLeaderRequiredException() : base("فقط رئیس مافیا می‌تونه تصمیم نهایی شب رو ثبت کنه — بقیه فقط توی چت نظر می‌دن.") { }
+}

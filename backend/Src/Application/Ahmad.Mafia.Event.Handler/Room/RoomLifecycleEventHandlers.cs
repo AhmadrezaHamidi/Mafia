@@ -1,3 +1,6 @@
+using Ahmad.Mafia.Domain.Room.Enums;
+using Ahmad.Mafia.Persistence.EF;
+
 namespace Ahmad.Mafia.Application.EventHandlers.Room;
 
 public sealed class RoomCreatedEventHandler(ILogger<RoomCreatedEventHandler> logger)
@@ -32,13 +35,30 @@ public sealed class PlayerLeftRoomEventHandler(ILogger<PlayerLeftRoomEventHandle
     }
 }
 
-public sealed class RoomBecameReadyEventHandler(ILogger<RoomBecameReadyEventHandler> logger)
+/// <summary>
+/// وقتی روم پر می‌شود: اگه عمومی بود خودمون Start رو صدا می‌زنیم (میزبانی برای
+/// کاربرِ matchmaking عمومی مفهومی نداره که منتظر کلیک اون بمونیم)؛ روم خصوصی
+/// مثل قبل با کلیک دستی Host شروع می‌شه.
+/// </summary>
+public sealed class RoomBecameReadyEventHandler(
+    IRoomRepository roomRepository,
+    MafiaDbContext context,
+    ILogger<RoomBecameReadyEventHandler> logger)
     : IEventHandlerAsync<RoomBecameReadyEvent>
 {
-    public Task HandleAsync(RoomBecameReadyEvent @event, CancellationToken token)
+    public async Task HandleAsync(RoomBecameReadyEvent @event, CancellationToken token)
     {
         logger.LogInformation("روم {RoomId} پر شد و آماده‌ی شروعه.", @event.RoomId);
-        return Task.CompletedTask;
+
+        var room = await roomRepository.GetByIdAsync(@event.RoomId, token);
+        if (room is null || room.Visibility != RoomVisibility.Public) return;
+        if (room.HostPlayerId is not { } hostPlayerId) return;
+
+        room.Start(hostPlayerId);
+        await roomRepository.UpdateAsync(room, token);
+        await context.CommitAsync(token);
+
+        logger.LogInformation("روم عمومی {RoomId} خودکار شروع شد.", @event.RoomId);
     }
 }
 

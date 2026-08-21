@@ -22,6 +22,11 @@ public sealed class RoomConfiguration : IEntityTypeConfiguration<RoomAggregate>
                .HasMaxLength(20)
                .IsRequired();
 
+        builder.Property(x => x.Visibility)
+               .HasConversion<string>()
+               .HasMaxLength(20)
+               .IsRequired();
+
         builder.HasMany(x => x.Members)
                .WithOne()
                .HasForeignKey(x => x.RoomId)

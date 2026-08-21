@@ -50,6 +50,7 @@ public sealed class GameSession : AggregateRoot<long>
             session._players.Add(new GamePlayer(seed.PlayerId, session.Id, seed.Nickname, roles[i]));
         }
 
+        session.AssignMafiaLeader();
         session.RaiseDomainEvent(new GameSessionStartedEvent(session.Id, arg.RoomId, arg.Players.Count));
         return session;
     }
@@ -63,6 +64,10 @@ public sealed class GameSession : AggregateRoot<long>
         var actor = GetAlivePlayerOrThrow(actorId);
         if (actor.Role != Role.SimpleMafia)
             throw new ActionNotAllowedForRoleException();
+
+        var aliveMafiaCount = _players.Count(p => p.IsAlive && p.Role == Role.SimpleMafia);
+        if (aliveMafiaCount > 1 && !actor.IsMafiaLeader)
+            throw new MafiaLeaderRequiredException();
 
         GetAlivePlayerOrThrow(targetId);
 
@@ -80,6 +85,7 @@ public sealed class GameSession : AggregateRoot<long>
             var target = _players.First(p => p.Id == targetId);
             target.Eliminate();
             eliminatedId = targetId;
+            AssignMafiaLeader();
         }
 
         NightTargetPlayerId = null;
@@ -130,6 +136,7 @@ public sealed class GameSession : AggregateRoot<long>
             {
                 eliminatedId = topVoted[0].TargetId;
                 _players.First(p => p.Id == eliminatedId).Eliminate();
+                AssignMafiaLeader();
             }
         }
 
@@ -163,6 +170,7 @@ public sealed class GameSession : AggregateRoot<long>
             _players[i].ResetForRematch();
             _players[i].AssignRole(roles[i]);
         }
+        AssignMafiaLeader();
 
         _votes.Clear();
         NightTargetPlayerId = null;
@@ -188,6 +196,21 @@ public sealed class GameSession : AggregateRoot<long>
             (roles[i], roles[j]) = (roles[j], roles[i]);
         }
         return roles;
+    }
+
+    /// <summary>
+    /// یک رئیس مافیا بین مافیاهای زنده تعیین می‌کند — فقط او اکشن شب را نهایی می‌کند.
+    /// بعد از هر حذف دوباره صدا زده می‌شود تا اگر رئیس حذف شده بود، جانشین تعیین شود
+    /// (وگرنه بقیه‌ی مافیا برای همیشه قفل می‌مانند چون هیچ‌کس اجازه‌ی تصمیم ندارد).
+    /// </summary>
+    private void AssignMafiaLeader()
+    {
+        var aliveMafia = _players.Where(p => p.IsAlive && p.Role == Role.SimpleMafia).ToList();
+        if (aliveMafia.Count == 0) return;
+        if (aliveMafia.Any(p => p.IsMafiaLeader)) return;
+
+        var leader = aliveMafia[Random.Shared.Next(aliveMafia.Count)];
+        leader.SetMafiaLeader(true);
     }
 
     private bool TryEndGame()
