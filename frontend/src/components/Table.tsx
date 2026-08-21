@@ -8,6 +8,8 @@ interface TableProps {
   selectedId?: string | null;
   onSelect?: (playerId: string) => void;
   voteCounts?: Record<string, number>;
+  /** برای دکتر — نجاتِ خود امکان‌پذیره، پس باید بشه روی خودش هم زد */
+  allowSelf?: boolean;
 }
 
 function seatPositions(n: number) {
@@ -19,7 +21,7 @@ function seatPositions(n: number) {
   return pts;
 }
 
-export function Table({ players, center, selectable, selectedId, onSelect, voteCounts }: TableProps) {
+export function Table({ players, center, selectable, selectedId, onSelect, voteCounts, allowSelf }: TableProps) {
   const positions = seatPositions(players.length);
 
   return (
@@ -44,7 +46,7 @@ export function Table({ players, center, selectable, selectedId, onSelect, voteC
 
       {players.map((p, i) => {
         const pos = positions[i];
-        const canSelect = selectable && p.alive && !p.isMe;
+        const canSelect = selectable && p.alive && (allowSelf || !p.isMe);
         const isSelected = selectedId === p.id;
         const votes = voteCounts?.[p.id];
         return (

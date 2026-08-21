@@ -1,4 +1,6 @@
-export type Role = "SimpleCitizen" | "SimpleMafia";
+export type Role = "SimpleCitizen" | "SimpleMafia" | "Doctor" | "Detective" | "GodFather";
+
+export type Scenario = "RussianMafia" | "MafiaNights";
 
 export type GamePhase = "lobby" | "night" | "day" | "end";
 
@@ -11,11 +13,17 @@ export interface Player {
   connected: boolean;
   micMuted: boolean;
   role?: Role;
-  /** فقط برای خودم پر می‌شه، وقتی بیش از یک مافیا زنده باشه */
+  /** فقط برای خودم پر می‌شه، وقتی بیش از یک نفر از تیم مافیا زنده باشه */
   isMafiaLeader?: boolean;
 }
 
 export type RoomVisibility = "Public" | "Private";
+
+/** نتیجه‌ی آخرین استعلامی که کارآگاه گرفته — فقط برای خودش قابل مشاهده‌ست. */
+export interface InvestigationResult {
+  targetId: string;
+  isMafia: boolean;
+}
 
 export type WinningTeam = "town" | "mafia" | null;
 

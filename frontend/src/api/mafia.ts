@@ -37,6 +37,8 @@ export interface RoomView {
   status: string;
   /** Public | Private */
   visibility: string;
+  /** RussianMafia | MafiaNights */
+  scenario: string;
   members: RoomMember[];
   gameSessionId: number | null;
 }
@@ -50,8 +52,15 @@ export interface GamePlayerView {
   connection: string;
 }
 
+export interface InvestigationResultView {
+  targetId: number;
+  isMafia: boolean;
+}
+
 export interface GameStateView {
   gameSessionId: number;
+  /** RussianMafia | MafiaNights */
+  scenario: string;
   /** Night | Day | Voting | Ended */
   phase: string;
   round: number;
@@ -59,9 +68,15 @@ export interface GameStateView {
   /** فقط نقش خودِ درخواست‌دهنده — نقش بقیه هرگز برنمی‌گردد */
   myRole: string | null;
   iAmAlive: boolean;
-  /** فقط وقتی بیش از یک مافیا زنده باشه معنا داره؛ برای غیرمافیا همیشه null */
+  /** فقط وقتی بیش از یک نفر از تیم مافیا زنده باشه معنا داره؛ برای بقیه همیشه null */
   myIsMafiaLeader: boolean | null;
   myNightTarget: number | null;
+  /** فقط برای دکتر */
+  myNightSaveTarget: number | null;
+  /** فقط برای کارآگاه */
+  myNightInvestigateTarget: number | null;
+  /** فقط برای کارآگاه — نتیجه‌ی آخرین استعلام (بین شب‌ها هم می‌مونه) */
+  myLastInvestigation: InvestigationResultView | null;
   players: GamePlayerView[];
   /** voterId → targetId */
   votes: Record<number, number> | null;
@@ -81,8 +96,16 @@ export interface GameResultView {
 }
 
 export const roomApi = {
-  create: (hostNickname: string, capacity: number, visibility: "Public" | "Private" = "Private") =>
-    request<CreateRoomResult>("/Room/", { method: "POST", body: { hostNickname, capacity, visibility } }),
+  create: (
+    hostNickname: string,
+    capacity: number,
+    visibility: "Public" | "Private" = "Private",
+    scenario: "RussianMafia" | "MafiaNights" = "RussianMafia",
+  ) =>
+    request<CreateRoomResult>("/Room/", {
+      method: "POST",
+      body: { hostNickname, capacity, visibility, scenario },
+    }),
 
   join: (roomCode: string, nickname: string) =>
     request<JoinRoomResult>("/Room/Join", { method: "POST", body: { roomCode, nickname } }),
@@ -113,10 +136,15 @@ export const gameApi = {
   result: (gameSessionId: number) =>
     request<GameResultView>(`/Game/${gameSessionId}/Result`),
 
-  nightAction: (gameSessionId: number, actorId: number, targetId: number) =>
+  nightAction: (
+    gameSessionId: number,
+    actorId: number,
+    targetId: number,
+    actionType: "Kill" | "Save" | "Investigate" = "Kill",
+  ) =>
     request<number>(`/Game/${gameSessionId}/Night/Action`, {
       method: "POST",
-      body: { actorId, targetId },
+      body: { actorId, targetId, actionType },
     }),
 
   vote: (gameSessionId: number, voterId: number, targetId: number) =>

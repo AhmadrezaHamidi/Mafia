@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store/gameStore";
 import { RolesGallery } from "../components/RolesGallery";
+import { scenarios } from "../data/roles";
+import type { Scenario } from "../types";
 
 type Mode = "quick" | "private";
 
@@ -12,6 +14,7 @@ export function Landing() {
   const quickJoin = useGameStore((s) => s.quickJoin);
   const [nickname, setNickname] = useState("");
   const [capacity, setCapacity] = useState(8);
+  const [scenario, setScenario] = useState<Scenario>("RussianMafia");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<Mode | null>(null);
@@ -47,7 +50,7 @@ export function Landing() {
     setError("");
     setBusy("private");
     try {
-      const roomCode = await createRoom(name, capacity);
+      const roomCode = await createRoom(name, capacity, scenario);
       navigate(`/room/${roomCode}`);
     } catch (err) {
       setError((err as Error).message);
@@ -136,6 +139,29 @@ export function Landing() {
             className="w-full"
             style={{ accentColor: "var(--blood)" }}
           />
+
+          <div className="flex gap-2">
+            {scenarios.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setScenario(s.key)}
+                className="flex-1 rounded-lg border px-2 py-2 text-xs font-bold transition"
+                style={
+                  scenario === s.key
+                    ? { background: "var(--blood)", borderColor: "var(--blood)", color: "var(--parchment)" }
+                    : { background: "var(--table)", borderColor: "var(--rule)", color: "var(--parchment-dim)" }
+                }
+                title={s.description}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+          <p className="-mt-1 text-xs" style={{ color: "var(--muted)" }}>
+            {scenarios.find((s) => s.key === scenario)?.description}
+          </p>
+
           <button
             onClick={handleCreatePrivate}
             disabled={busy !== null}
@@ -183,7 +209,7 @@ export function Landing() {
         )}
       </div>
 
-      <RolesGallery open={rolesOpen} onClose={() => setRolesOpen(false)} />
+      <RolesGallery open={rolesOpen} onClose={() => setRolesOpen(false)} initialScenario={scenario} />
     </div>
   );
 }

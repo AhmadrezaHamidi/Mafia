@@ -20,3 +20,15 @@ public enum RoomVisibility
     Private = 0,
     Public = 1,
 }
+
+/// <summary>
+/// هر سناریو یه rule-engine جدا برای نقش‌ها و شرط بردنه (سند ۰۱). سناریوهای بیشتر
+/// (زودیاک، قمارباز و ...) بعداً به همین enum اضافه می‌شن، نه هاردکد جای دیگه.
+/// </summary>
+public enum ScenarioType
+{
+    /// <summary>مافیای روسی — v1: فقط شهروند ساده + مافیای ساده، کشتن فقط شب اول.</summary>
+    RussianMafia = 0,
+    /// <summary>شب‌های مافیا — پدرخوانده/دکتر/کارآگاه، اکشن شب هر راند.</summary>
+    MafiaNights = 1,
+}

@@ -14,7 +14,16 @@ import {
   rejoin as rejoinChat,
   sendChat,
 } from "../api/chatHub";
-import type { ChatMessage, ChatThreadType, GamePhase, Player, Role, WinningTeam } from "../types";
+import type {
+  ChatMessage,
+  ChatThreadType,
+  GamePhase,
+  InvestigationResult,
+  Player,
+  Role,
+  Scenario,
+  WinningTeam,
+} from "../types";
 
 const POLL_NORMAL = 2500;
 const POLL_URGENT = 800;   // نزدیک پایان فاز
@@ -66,6 +75,8 @@ interface GameState {
   capacity: number;
   /** "Public" | "Private" — تا Lobby نحوه‌ی نمایش (لینک دعوت یا پیام صف) رو تعیین کنه */
   visibility: string;
+  /** "RussianMafia" | "MafiaNights" */
+  scenario: Scenario;
   players: Player[];
   phase: GamePhase;
   round: number;
@@ -73,6 +84,12 @@ interface GameState {
   timeLeftSec: number;
   lastDeath: { playerId: string; cause: "night" | "day" } | null;
   nightTarget: string | null;
+  /** فقط برای دکتر — هدفی که این شب برای نجات انتخاب کرده */
+  nightSaveTarget: string | null;
+  /** فقط برای کارآگاه — هدفی که این شب برای استعلام انتخاب کرده */
+  nightInvestigateTarget: string | null;
+  /** فقط برای کارآگاه — نتیجه‌ی آخرین استعلام */
+  lastInvestigation: InvestigationResult | null;
   votes: Record<string, string>;
   winningTeam: WinningTeam;
   timerHandle: ReturnType<typeof setInterval> | null;
@@ -81,15 +98,16 @@ interface GameState {
   chatConnected: boolean;
   error: string | null;
 
-  createRoom: (nickname: string, capacity: number) => Promise<string>;
+  createRoom: (nickname: string, capacity: number, scenario?: Scenario) => Promise<string>;
   joinRoom: (code: string, nickname: string) => Promise<string>;
-  /** «بازی سریع» — نیازی به کد نداره، سرور خودش وصل می‌کنه */
+  /** «بازی سریع» — نیازی به کد نداره، سرور خودش وصل می‌کنه (همیشه مافیای روسی) */
   quickJoin: (nickname: string) => Promise<string>;
   /** شروع هم‌گام‌سازی برای یک روم — صفحه‌ی Room موقع mount صدا می‌زند */
   enterRoom: (code: string) => void;
   stopSync: () => void;
   startGame: () => void;
-  submitNightAction: (targetId: string) => void;
+  /** actionType پیش‌فرض بر اساس نقش خودم تشخیص داده می‌شه (Night.tsx صریح می‌فرسته) */
+  submitNightAction: (targetId: string, actionType?: "Kill" | "Save" | "Investigate") => void;
   castVote: (targetId: string) => void;
   retractVote: () => void;
   toggleMic: () => void;
@@ -137,6 +155,7 @@ export const useGameStore = create<GameState>((set, get) => {
         set({
           capacity: room.capacity,
           visibility: room.visibility,
+          scenario: (room.scenario as Scenario) ?? "RussianMafia",
           phase: room.gameSessionId ? get().phase : "lobby",
           players: room.members.map<Player>((m) => ({
             id: String(m.playerId),
@@ -191,10 +210,17 @@ export const useGameStore = create<GameState>((set, get) => {
 
         set({
           phase,
+          scenario: (st.scenario as Scenario) ?? get().scenario,
           round: st.round,
           timeLeftSec: st.timeLeftSeconds,
           deadline: Date.now() + st.timeLeftSeconds * 1000,
           nightTarget: st.myNightTarget != null ? String(st.myNightTarget) : null,
+          nightSaveTarget: st.myNightSaveTarget != null ? String(st.myNightSaveTarget) : null,
+          nightInvestigateTarget:
+            st.myNightInvestigateTarget != null ? String(st.myNightInvestigateTarget) : null,
+          lastInvestigation: st.myLastInvestigation
+            ? { targetId: String(st.myLastInvestigation.targetId), isMafia: st.myLastInvestigation.isMafia }
+            : null,
           votes,
           players: st.players.map<Player>((p) => ({
             id: String(p.playerId),
@@ -278,6 +304,7 @@ export const useGameStore = create<GameState>((set, get) => {
     roomCode: null,
     capacity: 0,
     visibility: "Private",
+    scenario: "RussianMafia",
     players: [],
     phase: "lobby",
     round: 0,
@@ -285,6 +312,9 @@ export const useGameStore = create<GameState>((set, get) => {
     timeLeftSec: 0,
     lastDeath: null,
     nightTarget: null,
+    nightSaveTarget: null,
+    nightInvestigateTarget: null,
+    lastInvestigation: null,
     votes: {},
     winningTeam: null,
     timerHandle: null,
@@ -292,23 +322,24 @@ export const useGameStore = create<GameState>((set, get) => {
     chatConnected: false,
     error: null,
 
-    createRoom: async (nickname, capacity) => {
-      const res = await roomApi.create(nickname.trim(), capacity, "Private");
+    createRoom: async (nickname, capacity, scenario = "RussianMafia") => {
+      const res = await roomApi.create(nickname.trim(), capacity, "Private", scenario);
       myPlayerId = res.hostPlayerId;
       myRoomId = res.roomId;
       myGameSessionId = null;
       saveIdentity(res.roomCode, { playerId: res.hostPlayerId, roomId: res.roomId });
-      set({ roomCode: res.roomCode, phase: "lobby", visibility: "Private", error: null });
+      set({ roomCode: res.roomCode, phase: "lobby", visibility: "Private", scenario, error: null });
       return res.roomCode;
     },
 
+    // «بازی سریع» همیشه سناریوی مافیای روسی‌ست — matchmaking عمومی باید ساده و قابل‌پیش‌بینی بمونه.
     quickJoin: async (nickname) => {
       const res = await roomApi.quickJoin(nickname.trim());
       myPlayerId = res.playerId;
       myRoomId = res.roomId;
       myGameSessionId = null;
       saveIdentity(res.roomCode, { playerId: res.playerId, roomId: res.roomId });
-      set({ roomCode: res.roomCode, phase: "lobby", visibility: "Public", error: null });
+      set({ roomCode: res.roomCode, phase: "lobby", visibility: "Public", scenario: "RussianMafia", error: null });
       return res.roomCode;
     },
 
@@ -364,9 +395,11 @@ export const useGameStore = create<GameState>((set, get) => {
       void withError(() => roomApi.start(myRoomId!, myPlayerId!));
     },
 
-    submitNightAction: (targetId) => {
+    submitNightAction: (targetId, actionType = "Kill") => {
       if (myGameSessionId == null || myPlayerId == null) return;
-      void withError(() => gameApi.nightAction(myGameSessionId!, myPlayerId!, Number(targetId)));
+      void withError(() =>
+        gameApi.nightAction(myGameSessionId!, myPlayerId!, Number(targetId), actionType),
+      );
     },
 
     castVote: (targetId) => {
@@ -398,7 +431,9 @@ export const useGameStore = create<GameState>((set, get) => {
       myPlayerId = null; myRoomId = null; myGameSessionId = null;
       set({
         roomCode: null, players: [], phase: "lobby", round: 0, votes: {},
-        winningTeam: null, nightTarget: null, deadline: null, timeLeftSec: 0,
+        winningTeam: null, nightTarget: null, nightSaveTarget: null,
+        nightInvestigateTarget: null, lastInvestigation: null,
+        deadline: null, timeLeftSec: 0,
         chatMessages: [], error: null,
       });
     },
@@ -439,7 +474,7 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!me) return null;
       if (phase === "lobby") return "lobby";
       if (!me.alive) return "deadChat";
-      if (phase === "night") return me.role === "SimpleMafia" ? "nightMafia" : null;
+      if (phase === "night") return me.role === "SimpleMafia" || me.role === "GodFather" ? "nightMafia" : null;
       if (phase === "day") return "dayPublic";
       return null;
     },

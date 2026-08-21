@@ -4,6 +4,7 @@ import { Table } from "../components/Table";
 import { MicToggle } from "../components/MicToggle";
 import { ChatPanel } from "../components/ChatPanel";
 import { RolesGallery } from "../components/RolesGallery";
+import { scenarios } from "../data/roles";
 
 // روی سرور زیر /Mafia سرو می‌شود؛ لینک دعوت هم باید همون base رو داشته باشه
 // وگرنه لینکی که Host کپی می‌کنه برای مهمون‌ها 404 می‌ده.
@@ -13,6 +14,7 @@ export function Lobby() {
   const roomCode = useGameStore((s) => s.roomCode);
   const capacity = useGameStore((s) => s.capacity);
   const visibility = useGameStore((s) => s.visibility);
+  const scenario = useGameStore((s) => s.scenario);
   const players = useGameStore((s) => s.players);
   const startGame = useGameStore((s) => s.startGame);
   const me = useGameStore((s) => s.me());
@@ -65,6 +67,9 @@ export function Lobby() {
         {players.length} از {capacity} نفر
         {isFull ? " — همه اومدن" : " — در انتظار بقیه…"}
       </p>
+      <p className="-mt-2 text-center text-xs" style={{ color: "var(--muted)" }}>
+        سناریو: {scenarios.find((s) => s.key === scenario)?.name ?? scenario}
+      </p>
 
       <Table
         players={players}
@@ -108,7 +113,7 @@ export function Lobby() {
       </button>
 
       <ChatPanel />
-      <RolesGallery open={rolesOpen} onClose={() => setRolesOpen(false)} />
+      <RolesGallery open={rolesOpen} onClose={() => setRolesOpen(false)} initialScenario={scenario} />
     </div>
   );
 }

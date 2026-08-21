@@ -8,5 +8,7 @@ public record CreateRoomCommand(
     string HostNickname,
     int Capacity,
     /// <summary>"Public" | "Private" — ورودی رشته‌ای است تا این لایه به enum دامنه وابسته نشود.</summary>
-    string Visibility = "Private"
+    string Visibility = "Private",
+    /// <summary>"RussianMafia" | "MafiaNights" — ورودی رشته‌ای است تا این لایه به enum دامنه وابسته نشود.</summary>
+    string Scenario = "RussianMafia"
 ) : ICommand<CreateRoomResult>;

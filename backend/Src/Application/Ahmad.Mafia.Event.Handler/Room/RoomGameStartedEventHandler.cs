@@ -26,7 +26,7 @@ public sealed class RoomGameStartedEventHandler(
             .Select(m => new GamePlayerSeed(m.Id, m.Nickname))
             .ToList();
 
-        var session = GameSessionAgg.Create(new CreateGameSessionArg(sessionId, room.Id, players));
+        var session = GameSessionAgg.Create(new CreateGameSessionArg(sessionId, room.Id, players, room.Scenario));
 
         await gameSessionRepository.AddAsync(session, token);
         await context.CommitAsync(token);

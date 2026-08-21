@@ -10,6 +10,7 @@ public sealed record GetRoomQueryResponse(
     int Capacity,
     string Status,
     string Visibility,
+    string Scenario,
     IReadOnlyList<GetRoomMemberResponse> Members,
     long? GameSessionId
 );

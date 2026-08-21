@@ -21,9 +21,13 @@ public sealed class GameSessionConfiguration : IEntityTypeConfiguration<GameSess
         builder.Property(x => x.NightDurationSeconds).IsRequired();
         builder.Property(x => x.DayDurationSeconds).IsRequired();
         builder.Property(x => x.NightTargetPlayerId);
+        builder.Property(x => x.NightSaveTargetPlayerId);
+        builder.Property(x => x.NightInvestigateTargetPlayerId);
+        builder.Property(x => x.NightInvestigatorPlayerId);
 
         builder.Property(x => x.Phase).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(x => x.WinningTeam).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Scenario).HasConversion<string>().HasMaxLength(20).IsRequired();
 
         var votesComparer = new ValueComparer<Dictionary<long, long>>(
             (a, b) => (a ?? new()).OrderBy(kv => kv.Key).SequenceEqual((b ?? new()).OrderBy(kv => kv.Key)),
@@ -61,6 +65,8 @@ public sealed class GamePlayerConfiguration : IEntityTypeConfiguration<GamePlaye
         builder.Property(x => x.Nickname).HasMaxLength(50).IsRequired();
         builder.Property(x => x.IsAlive).IsRequired();
         builder.Property(x => x.IsMafiaLeader).IsRequired();
+        builder.Property(x => x.LastInvestigationTargetId);
+        builder.Property(x => x.LastInvestigationIsMafia);
 
         builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(x => x.Connection).HasConversion<string>().HasMaxLength(20).IsRequired();

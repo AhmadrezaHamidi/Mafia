@@ -10,19 +10,35 @@ internal static class GameSessionQueryMapper
         var me = session.Players.FirstOrDefault(p => p.Id == requestingPlayerId);
         var timeLeft = Math.Max(0, (int)Math.Ceiling((session.PhaseDeadlineUtc - DateTime.UtcNow).TotalSeconds));
 
-        var isMafia = me?.Role == Role.SimpleMafia;
-        long? myNightTarget = session.Phase == GamePhase.Night && isMafia ? session.NightTargetPlayerId : null;
+        var isMafiaTeam = me?.Role is Role.SimpleMafia or Role.GodFather;
+        var isDoctor = me?.Role == Role.Doctor;
+        var isDetective = me?.Role == Role.Detective;
+        var atNight = session.Phase == GamePhase.Night;
+
+        long? myNightTarget = atNight && isMafiaTeam ? session.NightTargetPlayerId : null;
+        long? myNightSaveTarget = atNight && isDoctor ? session.NightSaveTargetPlayerId : null;
+        long? myNightInvestigateTarget = atNight && isDetective ? session.NightInvestigateTargetPlayerId : null;
+
+        InvestigationResultView? myLastInvestigation =
+            isDetective && me?.LastInvestigationTargetId is { } targetId && me.LastInvestigationIsMafia is { } isMafia
+                ? new InvestigationResultView(targetId, isMafia)
+                : null;
+
         IReadOnlyDictionary<long, long>? votes = session.Phase == GamePhase.Day ? session.Votes : null;
 
         return new GetGameStateQueryResponse(
             GameSessionId: session.Id,
+            Scenario: session.Scenario.ToString(),
             Phase: session.Phase.ToString(),
             Round: session.Round,
             TimeLeftSeconds: timeLeft,
             MyRole: me?.Role.ToString(),
             IAmAlive: me?.IsAlive ?? false,
-            MyIsMafiaLeader: isMafia ? me?.IsMafiaLeader : null,
+            MyIsMafiaLeader: isMafiaTeam ? me?.IsMafiaLeader : null,
             MyNightTarget: myNightTarget,
+            MyNightSaveTarget: myNightSaveTarget,
+            MyNightInvestigateTarget: myNightInvestigateTarget,
+            MyLastInvestigation: myLastInvestigation,
             Players: session.Players
                 .Select(p => new GamePlayerView(p.Id, p.Nickname, p.IsAlive, p.Connection.ToString()))
                 .ToList(),

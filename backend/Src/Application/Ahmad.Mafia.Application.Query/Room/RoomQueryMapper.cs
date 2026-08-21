@@ -10,6 +10,7 @@ internal static class RoomQueryMapper
         Capacity: room.Capacity,
         Status: room.Status.ToString(),
         Visibility: room.Visibility.ToString(),
+        Scenario: room.Scenario.ToString(),
         Members: room.Members
             .Select(m => new GetRoomMemberResponse(m.Id, m.Nickname, m.IsHost))
             .ToList(),

@@ -17,6 +17,10 @@ public sealed class GamePlayer : TEntity<long>
     /// </summary>
     public bool IsMafiaLeader { get; private set; }
 
+    /// <summary>فقط برای Detective پر می‌شه — آخرین نفری که استعلام گرفته + نتیجه (مافیاست یا نه).</summary>
+    public long? LastInvestigationTargetId { get; private set; }
+    public bool? LastInvestigationIsMafia { get; private set; }
+
     private GamePlayer() { }
 
     internal GamePlayer(long playerId, long gameSessionId, string nickname, Role role)
@@ -36,9 +40,17 @@ public sealed class GamePlayer : TEntity<long>
         IsAlive = true;
         Connection = ConnectionState.Connected;
         IsMafiaLeader = false;
+        LastInvestigationTargetId = null;
+        LastInvestigationIsMafia = null;
     }
 
     internal void AssignRole(Role role) => Role = role;
 
     internal void SetMafiaLeader(bool value) => IsMafiaLeader = value;
+
+    internal void SetInvestigationResult(long targetId, bool isMafia)
+    {
+        LastInvestigationTargetId = targetId;
+        LastInvestigationIsMafia = isMafia;
+    }
 }

@@ -1,10 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store/gameStore";
+import { roleByKey } from "../data/roles";
+
+const accentColors: Record<string, string> = {
+  blood: "var(--blood-bright)",
+  town: "var(--town)",
+  lamp: "var(--lamp)",
+};
 
 export function End() {
   const navigate = useNavigate();
   const players = useGameStore((s) => s.players);
   const winningTeam = useGameStore((s) => s.winningTeam);
+  const scenario = useGameStore((s) => s.scenario);
   const requestRematch = useGameStore((s) => s.requestRematch);
   const leaveRoom = useGameStore((s) => s.leaveRoom);
   const me = useGameStore((s) => s.me());
@@ -35,7 +43,8 @@ export function End() {
 
       <div className="grid w-full grid-cols-3 gap-2">
         {players.map((p) => {
-          const isMafiaRole = p.role === "SimpleMafia";
+          const info = roleByKey(p.role, scenario);
+          const color = accentColors[info?.accent ?? "town"];
           return (
             <div
               key={p.id}
@@ -45,17 +54,15 @@ export function End() {
               <div
                 className="mx-auto mb-1 flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold"
                 style={{ background: "var(--table-edge)", borderColor: "var(--rule)" }}
+                title={info?.name}
               >
-                {p.name.charAt(0)}
+                {info?.icon ?? p.name.charAt(0)}
               </div>
               <div className="truncate text-[0.66rem]" style={{ color: "var(--parchment-dim)" }}>
                 {p.name}
               </div>
-              <div
-                className="text-[0.68rem] font-bold"
-                style={{ color: isMafiaRole ? "var(--blood-bright)" : "var(--town)" }}
-              >
-                {isMafiaRole ? "مافیا" : "شهروند"}
+              <div className="text-[0.68rem] font-bold" style={{ color }}>
+                {info?.name ?? p.role ?? "؟"}
               </div>
             </div>
           );

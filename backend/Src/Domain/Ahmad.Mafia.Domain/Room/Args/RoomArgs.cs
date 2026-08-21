@@ -8,7 +8,8 @@ public sealed record CreateRoomArg(
     long HostPlayerId,
     string HostNickname,
     int Capacity,
-    RoomVisibility Visibility = RoomVisibility.Private
+    RoomVisibility Visibility = RoomVisibility.Private,
+    ScenarioType Scenario = ScenarioType.RussianMafia
 );
 
 public sealed record JoinRoomArg(

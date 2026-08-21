@@ -1,4 +1,5 @@
 using Ahmad.Mafia.Application.Contract.GameSession.Commands;
+using Ahmad.Mafia.Domain.GameSession.Enums;
 using Ahmad.Mafia.Domain.GameSession.Exceptions;
 using Ahmad.Mafia.Domain.Repositories;
 using Ahmad.Mafia.Persistence.EF;
@@ -18,11 +19,14 @@ public sealed class GameSessionHandlers(
     public async Task<long> Handle(SubmitNightActionCommand command, CancellationToken token)
     {
         var session = await GetOrThrow(command.GameSessionId, token);
-        session.SubmitNightAction(command.ActorId, command.TargetId);
+        session.SubmitNightAction(command.ActorId, command.TargetId, ParseActionType(command.ActionType));
         await repository.UpdateAsync(session, token);
         await context.CommitAsync(token);
         return session.Id;
     }
+
+    private static NightActionType ParseActionType(string? value)
+        => Enum.TryParse<NightActionType>(value, ignoreCase: true, out var parsed) ? parsed : NightActionType.Kill;
 
     public async Task<long> Handle(CastVoteCommand command, CancellationToken token)
     {
