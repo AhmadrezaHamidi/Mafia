@@ -1,0 +1,59 @@
+# ساخت اپ iOS روی GitHub Actions.
+#
+# چرا اینجا: ساخت iOS فقط روی macOS با Xcode ممکن است — این محدودیت اپل است،
+# نه انتخاب ما. گیت‌هاب runner مک می‌دهد، پس بدون داشتن مک هم می‌شود ساخت.
+#
+# محدودیت مهم: خروجی این workflow «بدون امضا» است. یعنی روی شبیه‌ساز اجرا
+# می‌شود و کامپایل را تأیید می‌کند، ولی روی گوشی نصب نمی‌شود و به اپ‌استور
+# نمی‌رود. برای آن به حساب Apple Developer (سالانه ۹۹ دلار) و گواهی امضا
+# نیاز است؛ بعد از تهیه‌ی آن، مرحله‌ی archive و export اینجا اضافه می‌شود.
+
+name: ساخت اپ iOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: نصب وابستگی‌ها
+        run: npm ci
+
+      - name: build وب برای بسته‌ی نیتیو
+        run: npm run build:mobile
+
+      - name: همگام‌سازی با پروژه‌ی iOS
+        run: npx cap sync ios
+
+      # بدون امضا: -sdk iphonesimulator تا نیازی به گواهی نباشد.
+      # این تأیید می‌کند پروژه واقعاً کامپایل می‌شود.
+      - name: کامپایل برای شبیه‌ساز
+        working-directory: frontend/ios/App
+        run: |
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build

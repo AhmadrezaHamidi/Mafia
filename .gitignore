@@ -42,3 +42,12 @@ frontend/android/capacitor-cordova-android-plugins/
 frontend/android/app/src/main/assets/public/
 frontend/android/app/src/main/assets/capacitor.config.json
 frontend/android/app/src/main/assets/capacitor.plugins.json
+
+# iOS — خروجی build و وابستگی‌های نصب‌شده
+frontend/ios/App/build/
+frontend/ios/App/Pods/
+frontend/ios/App/App/public/
+frontend/ios/App/App/capacitor.config.json
+frontend/ios/App/App/config.xml
+frontend/ios/capacitor-cordova-ios-plugins/
+frontend/ios/DerivedData/
