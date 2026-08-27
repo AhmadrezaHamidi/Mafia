@@ -15,7 +15,12 @@ import {
 } from "@microsoft/signalr";
 import type { ChatMessage } from "../types";
 
-const HUB_URL = (import.meta.env.BASE_URL.replace(/\/$/, "") || "") + "/hubs/chat";
+// در وب مسیر نسبیِ همان دامنه کافی است. در اپ موبایل صفحه از
+// capacitor://localhost بالا می‌آید، پس مسیر نسبی به خودِ اپ می‌خورد نه سرور —
+// آنجا VITE_HUB_BASE با آدرس کامل سرور ست می‌شود.
+const HUB_BASE =
+  import.meta.env.VITE_HUB_BASE ?? (import.meta.env.BASE_URL.replace(/\/$/, "") || "");
+const HUB_URL = HUB_BASE + "/hubs/chat";
 
 let connection: HubConnection | null = null;
 let currentRoom: string | null = null;

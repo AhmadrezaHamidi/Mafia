@@ -30,3 +30,15 @@ Thumbs.db
 *.log
 logs/
 .idea/
+
+# اندروید — خروجی build و تنظیمات محلی
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/
+frontend/android/local.properties
+frontend/android/.idea/
+frontend/android/capacitor-cordova-android-plugins/
+# دارایی‌های وب که cap sync هر بار از dist می‌سازد
+frontend/android/app/src/main/assets/public/
+frontend/android/app/src/main/assets/capacitor.config.json
+frontend/android/app/src/main/assets/capacitor.plugins.json
