@@ -86,7 +86,7 @@ export function Landing() {
         <p className="mb-1 font-mono text-[0.68rem] tracking-[0.12em]" style={{ color: "var(--lamp)" }}>
           بازی گروهی آنلاین
         </p>
-        <h1 className="text-4xl font-extrabold">مافیا</h1>
+        <h1 className="text-5xl">مافیا</h1>
         <p className="mx-auto mt-2 max-w-[22rem] text-sm" style={{ color: "var(--parchment-dim)" }}>
           یه میز، یه چراغ، و یه شهر که نمی‌دونه کی بینشون قایم شده.
         </p>

@@ -83,7 +83,7 @@ export function Day() {
         <p className="font-mono text-[0.68rem] tracking-[0.14em]" style={{ color: "var(--lamp)" }}>
           راند {round} · روز
         </p>
-        <h2 className="text-2xl font-extrabold">
+        <h2 className="text-3xl">
           {speakingDone ? "رأی‌گیری" : "نوبت صحبت"}
         </h2>
       </header>

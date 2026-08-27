@@ -107,7 +107,7 @@ export function Night() {
         >
           راند {round} · شب
         </p>
-        <h2 className="text-2xl font-extrabold">شهر خوابیده…</h2>
+        <h2 className="text-3xl">شهر خوابیده…</h2>
         <p className="mt-1 text-sm" style={{ color: "var(--parchment-dim)" }}>
           {statusText()}
         </p>

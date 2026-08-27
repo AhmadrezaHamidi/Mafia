@@ -47,7 +47,7 @@ export function RolesGallery({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-extrabold">نقش‌های بازی</h2>
+          <h2 className="text-xl">نقش‌های بازی</h2>
           <button
             onClick={onClose}
             aria-label="بستن"

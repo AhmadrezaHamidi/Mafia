@@ -22,6 +22,9 @@
   --town: #4f8f82;
   --rule: #33291f;
   --font-sans: "Vazirmatn", "Segoe UI", Tahoma, sans-serif;
+  /* رقاص: نمایشی با ریشه‌ی خوشنویسی — فقط تیترها.
+     یک وزن بیشتر ندارد، پس font-weight رویش بی‌اثر است و نباید bold بگیرد. */
+  --font-display: "Rakkas", "Vazirmatn", Tahoma, serif;
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
 }
 
@@ -118,3 +121,18 @@ input:focus-visible {
   .halo-ring,
   .halo-ring--outer { transition: none; }
 }
+
+/* ── سلسله‌مراتب تیتر ────────────────────────────────────────────────────────
+   رقاص روی همه‌ی تیترها، تا صفحه‌ها لحن یکدست داشته باشند و تیتر از متن
+   جدا شود. یک وزن بیشتر ندارد، پس font-weight را صریح normal می‌گذاریم تا
+   مرورگر faux-bold نسازد (که در فارسی حروف را به‌هم می‌چسباند). */
+h1, h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+
+/* رقاص کمی کوتاه‌تر از وزیرمتن می‌نشیند؛ این جبرانش می‌کند */
+h1 { line-height: 1.25; }
+h2 { line-height: 1.3; }
