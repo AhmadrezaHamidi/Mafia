@@ -79,6 +79,25 @@ jobs:
           cd build && zip -qry mafia-unsigned.ipa Payload
           ls -lh mafia-unsigned.ipa
 
+      # بدون این بررسی، IPA ای که دارایی‌های وب داخلش نباشد هم «موفق» شمرده
+      # می‌شد و روی گوشی فقط صفحه‌ی سفید می‌داد — خطایی که تا نصب معلوم نمی‌شود.
+      - name: بررسی اینکه دارایی‌های وب داخل بسته هستند
+        working-directory: frontend/ios/App
+        run: |
+          APP=$(find build/App.xcarchive/Products/Applications -maxdepth 1 -name '*.app' | head -1)
+          echo "── محتوای بسته ──"
+          ls -la "$APP"
+          for f in public/index.html public/assets; do
+            if [ ! -e "$APP/$f" ]; then
+              echo "خطا: $f در بسته نیست — اپ صفحه‌ی سفید می‌دهد"
+              exit 1
+            fi
+          done
+          echo "── دارایی‌های وب ──"
+          ls -la "$APP/public/assets"
+          echo "حجم باینری نیتیو:"
+          du -h "$APP"/$(basename "$APP" .app) 2>/dev/null || true
+
       - uses: actions/upload-artifact@v5
         with:
           name: mafia-ipa-unsigned
