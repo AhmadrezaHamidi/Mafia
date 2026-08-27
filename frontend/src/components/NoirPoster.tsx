@@ -1,83 +1,91 @@
-// سیلوئت نوآر پس‌زمینه‌ی صفحه‌ی ورود.
+// پیکره‌ی نوآر پس‌زمینه — بر اساس ترکیب‌بندی لوگوی بازی:
+// کلاه لبه‌پهن، صورتِ خالی، یقه‌ی کت، پیراهن سفید، کراوات قرمز.
 //
-// چرا سیلوئت و نه عکس: صورتِ مشخص، بازیکن را به یک شخصیت خاص گره می‌زند،
-// در حالی که مافیا بازیِ «هرکسی ممکنه اون باشه» است. سایه‌ی بی‌چهره دقیقاً
-// همان حس را می‌دهد و ضمناً چند کیلوبایت است نه چند مگابایت.
+// چرا وکتور و نه عکس: در هر اندازه تیز می‌ماند، چند کیلوبایت است، و رنگ‌هایش
+// از همان توکن‌های تم می‌آید — پس اگر تم عوض شود، خودش هم عوض می‌شود.
+//
+// اگر فایل mafia-logo.png در public/ باشد، LogoMark به‌جای این استفاده می‌شود.
 
 export function NoirPoster() {
   return (
     <div aria-hidden="true" className="noir-poster">
-      <svg viewBox="0 0 400 560" preserveAspectRatio="xMidYMax slice">
+      <svg viewBox="0 0 400 520" preserveAspectRatio="xMidYMax slice">
         <defs>
-          {/* از پایین به بالا محو می‌شود تا متن روی آن خوانا بماند */}
-          <linearGradient id="fadeUp" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%"   stopColor="#000" stopOpacity="1" />
-            <stop offset="55%"  stopColor="#000" stopOpacity="0.55" />
+          {/* از پایین محو می‌شود تا متن روی آن خوانا بماند */}
+          <linearGradient id="np-fade" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stopColor="#000" stopOpacity="1" />
+            <stop offset="60%" stopColor="#000" stopOpacity="0.5" />
             <stop offset="100%" stopColor="#000" stopOpacity="0" />
           </linearGradient>
-          <mask id="softMask">
-            <rect width="400" height="560" fill="url(#fadeUp)" />
+          <mask id="np-mask">
+            <rect width="400" height="520" fill="url(#np-fade)" />
           </mask>
 
-          {/* نور قرمزِ پشت سر — منبع نور صحنه */}
-          {/* نور پشت سر، ملایم — باید شکل را بسازد نه صفحه را قرمز کند */}
-          <radialGradient id="rimLight" cx="50%" cy="34%" r="46%">
-            <stop offset="0%"   stopColor="#FF2A44" stopOpacity="0.34" />
-            <stop offset="45%"  stopColor="#C8102E" stopOpacity="0.16" />
-            <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+          {/* نور پشت سر — شکل را همین می‌سازد، نه رنگ خودِ پیکره */}
+          <radialGradient id="np-rim" cx="50%" cy="32%" r="46%">
+            <stop offset="0%" stopColor="#FF2A44" stopOpacity="0.32" />
+            <stop offset="50%" stopColor="#C8102E" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="#000" stopOpacity="0" />
           </radialGradient>
 
-          <linearGradient id="smokeFade" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%"   stopColor="#E9DCD6" stopOpacity="0.30" />
-            <stop offset="100%" stopColor="#E9DCD6" stopOpacity="0" />
+          <linearGradient id="np-smoke" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stopColor="#EFE7E4" stopOpacity="0.26" />
+            <stop offset="100%" stopColor="#EFE7E4" stopOpacity="0" />
           </linearGradient>
         </defs>
 
-        {/* هاله‌ی قرمز پشت شخصیت */}
-        <ellipse cx="200" cy="165" rx="200" ry="185" fill="url(#rimLight)" />
+        <ellipse cx="200" cy="170" rx="185" ry="170" fill="url(#np-rim)" />
 
-        <g mask="url(#softMask)" fill="#000000">
-          {/* لبه‌ی کلاه */}
-          <path d="M104 150 q96 -30 192 0 q-14 17 -96 20 q-82 -3 -96 -20 Z" />
-          {/* تاج کلاه با فرورفتگی وسط */}
-          <path d="M140 150 q6 -62 60 -62 q54 0 60 62 q-30 -12 -60 -12 q-30 0 -60 12 Z" />
+        <g mask="url(#np-mask)">
+          {/* ── کلاه ───────────────────────────────────────────────── */}
+          {/* لبه‌ی پهن با نوک‌های تیز — امضای بصری این سبک */}
+          <path
+            d="M86 156 q40 -22 114 -22 q74 0 114 22 q-10 20 -46 27 q-38 7 -68 7 q-30 0 -68 -7 q-36 -7 -46 -27 Z"
+            fill="#0A0709" stroke="#EFE7E4" strokeWidth="3.5" strokeLinejoin="round"
+          />
+          {/* تاج با فرورفتگی وسط */}
+          <path
+            d="M132 150 q4 -66 68 -66 q64 0 68 66 q-34 -14 -68 -14 q-34 0 -68 14 Z"
+            fill="#0A0709" stroke="#EFE7E4" strokeWidth="3.5" strokeLinejoin="round"
+          />
           {/* نوار دور کلاه */}
-          <rect x="138" y="140" width="124" height="11" opacity="0.55" />
+          <path d="M133 146 q34 -12 67 -12 q33 0 67 12 l0 8 q-34 -12 -67 -12 q-33 0 -67 12 Z" fill="#9C2B32" opacity="0.85" />
 
-          {/* سر و گردن */}
-          <path d="M154 168 q46 16 92 0 l4 62 q-8 26 -50 26 q-42 0 -50 -26 Z" />
-          {/* یقه و شانه‌ها */}
-          <path d="M108 300 q42 -34 92 -34 q50 0 92 34 l16 260 H92 Z" />
-          {/* برگردان کت */}
-          <path d="M176 274 l24 44 l24 -44 l30 20 l-54 62 l-54 -62 Z" opacity="0.45" />
-          {/* کراوات */}
-          <path d="M196 288 l8 0 l6 18 l-10 46 l-10 -46 Z" opacity="0.7" />
-        </g>
+          {/* ── صورتِ خالی و گردن ──────────────────────────────────── */}
+          <path d="M162 176 q38 12 76 0 l0 46 q-6 22 -38 22 q-32 0 -38 -22 Z" fill="#050304" />
 
-        {/* سیگار روی لب — تنها عنصر روشن صورت */}
-        <g mask="url(#softMask)">
-          <rect x="212" y="232" width="34" height="6" rx="3" fill="#E9DCD6" opacity="0.85" />
-          {/* خاکستر روشن نوک سیگار */}
-          <circle cx="248" cy="235" r="4.5" fill="#FF5A3C" opacity="0.95" />
-          <circle cx="248" cy="235" r="9" fill="#FF5A3C" opacity="0.22" />
-        </g>
-
-        {/* دود — حرکت آرام و بی‌پایان، تنها انیمیشن این تصویر */}
-        <g mask="url(#softMask)" className="noir-smoke">
+          {/* ── شانه و کت ──────────────────────────────────────────── */}
           <path
-            d="M250 228 q16 -34 -2 -60 q-18 -26 2 -52 q14 -18 4 -34"
-            fill="none" stroke="url(#smokeFade)" strokeWidth="9" strokeLinecap="round"
+            d="M96 300 q40 -44 104 -52 q64 8 104 52 l14 220 H82 Z"
+            fill="#0A0709" stroke="#EFE7E4" strokeWidth="3.5" strokeLinejoin="round"
+          />
+          {/* پیراهن سفید */}
+          <path d="M176 244 q24 16 48 0 l10 20 l-34 42 l-34 -42 Z" fill="#EFE7E4" />
+          {/* برگردان‌های کت */}
+          <path d="M176 244 l24 62 l-40 -26 Z" fill="#0A0709" stroke="#EFE7E4" strokeWidth="3" strokeLinejoin="round" />
+          <path d="M224 244 l-24 62 l40 -26 Z" fill="#0A0709" stroke="#EFE7E4" strokeWidth="3" strokeLinejoin="round" />
+          {/* کراوات قرمز */}
+          <path d="M193 262 h14 l-3 12 l9 44 l-13 16 l-13 -16 l9 -44 Z" fill="#C8102E" />
+          {/* خطوط قرمز کناری — لهجه‌ی رنگی همان سبک */}
+          <path d="M112 296 l10 -10 l6 150 l-12 0 Z" fill="#9C2B32" opacity="0.75" />
+          <path d="M288 296 l-10 -10 l-6 150 l12 0 Z" fill="#9C2B32" opacity="0.75" />
+
+          {/* ── سیگار روی لب ───────────────────────────────────────── */}
+          <rect x="208" y="212" width="32" height="6" rx="3" fill="#EFE7E4" opacity="0.9" />
+          <circle cx="242" cy="215" r="4.5" fill="#FF5A3C" />
+          <circle cx="242" cy="215" r="10" fill="#FF5A3C" opacity="0.2" />
+        </g>
+
+        {/* دود — تنها انیمیشن تصویر */}
+        <g mask="url(#np-mask)" className="noir-smoke">
+          <path
+            d="M244 208 q16 -32 -2 -58 q-18 -26 2 -50"
+            fill="none" stroke="url(#np-smoke)" strokeWidth="9" strokeLinecap="round"
           />
           <path
-            d="M258 226 q22 -30 8 -56 q-14 -26 6 -46"
-            fill="none" stroke="url(#smokeFade)" strokeWidth="6" strokeLinecap="round" opacity="0.7"
+            d="M252 206 q22 -28 8 -54"
+            fill="none" stroke="url(#np-smoke)" strokeWidth="6" strokeLinecap="round" opacity="0.65"
           />
-        </g>
-
-        {/* تفنگ در دست، رو به پایین — تهدید هست ولی نشانه گرفته نشده */}
-        <g mask="url(#softMask)" fill="#0A0709">
-          <path d="M286 372 l40 0 l0 15 l-11 0 l-2 26 q-2 9 -10 9 q-8 0 -9 -9 l-2 -26 l-6 0 Z" />
-          <rect x="286" y="366" width="30" height="8" rx="3" opacity="0.85" />
         </g>
       </svg>
     </div>

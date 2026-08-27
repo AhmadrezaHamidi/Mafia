@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store/gameStore";
 import { RolesGallery } from "../components/RolesGallery";
 import { NoirPoster } from "../components/NoirPoster";
+import { LogoMark } from "../components/LogoMark";
 import { scenarios } from "../data/roles";
 import type { Scenario } from "../types";
 
@@ -88,7 +89,7 @@ export function Landing() {
         <p className="mb-1 font-mono text-[0.68rem] tracking-[0.12em]" style={{ color: "var(--lamp)" }}>
           بازی گروهی آنلاین
         </p>
-        <h1 className="text-5xl">مافیا</h1>
+        <LogoMark />
         <p className="mx-auto mt-2 max-w-[22rem] text-sm" style={{ color: "var(--parchment-dim)" }}>
           یه میز، یه چراغ، و یه شهر که نمی‌دونه کی بینشون قایم شده.
         </p>
