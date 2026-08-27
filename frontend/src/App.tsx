@@ -1,14 +1,24 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Landing } from "./screens/Landing";
 import { Room } from "./screens/Room";
+import { AppBackground } from "./components/AppBackground";
 
 // روی سرور زیر /Mafia سرو می‌شود؛ basename از همان base ویت گرفته می‌شود
 // تا مسیرها در dev (ریشه) و production (زیرمسیر) هر دو درست کار کنند.
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+/** پس‌زمینه یک‌بار برای کل اپ رندر می‌شود، ولی شدتش به صفحه بستگی دارد:
+ *  ورود محتوای کمی دارد پس تصویر پررنگ‌تر است؛ داخل بازی محو می‌شود تا
+ *  با اطلاعات بازی رقابت نکند. */
+function Background() {
+  const { pathname } = useLocation();
+  return <AppBackground intensity={pathname === "/" ? "full" : "dim"} />;
+}
+
 function App() {
   return (
     <BrowserRouter basename={basename || undefined}>
+      <Background />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/room/:code" element={<Room />} />

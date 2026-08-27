@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store/gameStore";
 import { RolesGallery } from "../components/RolesGallery";
-import { NoirPoster } from "../components/NoirPoster";
 import { LogoMark } from "../components/LogoMark";
 import { scenarios } from "../data/roles";
 import type { Scenario } from "../types";
@@ -84,7 +83,6 @@ export function Landing() {
 
   return (
     <div className="relative mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-6 p-6 text-center">
-      <NoirPoster />
       <div>
         <p className="mb-1 font-mono text-[0.68rem] tracking-[0.12em]" style={{ color: "var(--lamp)" }}>
           بازی گروهی آنلاین
