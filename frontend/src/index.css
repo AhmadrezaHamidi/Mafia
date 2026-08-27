@@ -88,3 +88,33 @@ input:focus-visible {
     animation: none;
   }
 }
+
+/* ── هاله‌ی صدای گوینده ──────────────────────────────────────────────────────
+   مقدار --level را hook صدا مستقیم روی عنصر می‌نویسد (۰ تا ۱).
+   هیچ keyframe ای در کار نیست: خودِ صدا انیمیشن است، پس با سکوت هم متوقف
+   می‌شود — این تفاوتش با یک پالس تزئینیِ همیشه‌درحال‌اجراست. */
+.halo { --level: 0; }
+
+.halo-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(217, 73, 92, 0.55), transparent 68%);
+  transform: scale(calc(0.82 + var(--level) * 0.42));
+  opacity: calc(0.18 + var(--level) * 0.72);
+  transition: transform 90ms linear, opacity 90ms linear;
+}
+
+.halo-ring--outer {
+  background: radial-gradient(circle, rgba(156, 43, 50, 0.34), transparent 62%);
+  transform: scale(calc(0.95 + var(--level) * 0.72));
+  opacity: calc(0.1 + var(--level) * 0.45);
+  transition: transform 150ms linear, opacity 150ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* هاله می‌ماند تا گوینده همچنان مشخص باشد، ولی دیگر نفس نمی‌کشد */
+  .halo-ring,
+  .halo-ring--outer { transition: none; }
+}
