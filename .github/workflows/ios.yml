@@ -3,10 +3,15 @@
 # چرا اینجا: ساخت iOS فقط روی macOS با Xcode ممکن است — این محدودیت اپل است،
 # نه انتخاب ما. گیت‌هاب runner مک می‌دهد، پس بدون داشتن مک هم می‌شود ساخت.
 #
-# محدودیت مهم: خروجی این workflow «بدون امضا» است. یعنی روی شبیه‌ساز اجرا
-# می‌شود و کامپایل را تأیید می‌کند، ولی روی گوشی نصب نمی‌شود و به اپ‌استور
-# نمی‌رود. برای آن به حساب Apple Developer (سالانه ۹۹ دلار) و گواهی امضا
-# نیاز است؛ بعد از تهیه‌ی آن، مرحله‌ی archive و export اینجا اضافه می‌شود.
+# خروجی: یک فایل IPA «بدون امضا».
+#   • با اپل‌آیدی خودت و ابزارهایی مثل Sideloadly یا AltStore روی گوشی نصب
+#     می‌شود (اعتبار ۷ روزه‌ی حساب رایگان).
+#   • برای انتشار در App Store یا TestFlight باید امضا شود، که به حساب
+#     Apple Developer و گواهی نیاز دارد. آن گواهی و رمزش باید به‌عنوان
+#     GitHub Secret ثبت شوند، بعد مرحله‌ی export با پروفایل واقعی اضافه شود.
+#
+# چرا archive برای iphoneos و نه build برای شبیه‌ساز: باینری واقعی arm64
+# ساخته می‌شود، هم قابل نصب است و هم بررسی سخت‌گیرانه‌تری از کامپایل.
 
 name: ساخت اپ iOS
 
@@ -44,16 +49,39 @@ jobs:
       - name: همگام‌سازی با پروژه‌ی iOS
         run: npx cap sync ios
 
-      # بدون امضا: -sdk iphonesimulator تا نیازی به گواهی نباشد.
-      # این تأیید می‌کند پروژه واقعاً کامپایل می‌شود.
-      - name: کامپایل برای شبیه‌ساز
+      - name: Archive بدون امضا
         working-directory: frontend/ios/App
         run: |
           xcodebuild \
             -project App.xcodeproj \
             -scheme App \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/App.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            build
+            CODE_SIGN_ENTITLEMENTS="" \
+            archive
+
+      # IPA در واقع یک zip است با پوشه‌ی Payload در ریشه. چون امضا نداریم
+      # نمی‌شود از -exportArchive استفاده کرد (پروفایل می‌خواهد)، پس دستی
+      # بسته‌بندی می‌کنیم — همان ساختاری که نصب‌کننده‌ها انتظار دارند.
+      - name: بسته‌بندی به IPA
+        working-directory: frontend/ios/App
+        run: |
+          APP=$(find build/App.xcarchive/Products/Applications -maxdepth 1 -name '*.app' | head -1)
+          if [ -z "$APP" ]; then echo "هیچ .app ای در archive نیست"; exit 1; fi
+          echo "پیدا شد: $APP"
+          mkdir -p build/Payload
+          cp -R "$APP" build/Payload/
+          cd build && zip -qry mafia-unsigned.ipa Payload
+          ls -lh mafia-unsigned.ipa
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: mafia-ipa-unsigned
+          path: frontend/ios/App/build/mafia-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
