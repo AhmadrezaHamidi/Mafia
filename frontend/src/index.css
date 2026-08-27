@@ -1,8 +1,24 @@
 @import "tailwindcss";
 
+/* رقاص از Google Fonts لود می‌شد، ولی fonts.googleapis.com از داخل ایران
+   در دسترس نیست — یعنی روی سرور بی‌صدا به وزیرمتن برمی‌گشت و تیترها لحن
+   خودشان را از دست می‌دادند. حالا فایل کنار خودِ اپ سرو می‌شود.
+   فقط زیرمجموعه‌ی عربی: لاتین را وزیرمتن پوشش می‌دهد.
+
+   فونت‌ها عمداً در src/assets هستند نه public: مسیرِ داخل url() نسبی است و
+   Vite موقع build با base درست بازنویسی‌اش می‌کند. با مسیر مطلقِ /fonts/…
+   روی سرور که اپ زیر /Mafia سرو می‌شود ۴۰۴ می‌گرفت و فونت اصلاً لود نمی‌شد. */
+@font-face {
+  font-family: "Rakkas";
+  src: url("./assets/fonts/Rakkas-Arabic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: "Vazirmatn";
-  src: url("/fonts/Vazirmatn-Variable.ttf") format("truetype");
+  src: url("./assets/fonts/Vazirmatn-Variable.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;

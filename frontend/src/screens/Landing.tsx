@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store/gameStore";
+import { useAuthStore } from "../store/authStore";
 import { RolesGallery } from "../components/RolesGallery";
 import { LogoMark } from "../components/LogoMark";
 import { scenarios } from "../data/roles";
@@ -13,6 +14,8 @@ export function Landing() {
   const createRoom = useGameStore((s) => s.createRoom);
   const joinRoom = useGameStore((s) => s.joinRoom);
   const quickJoin = useGameStore((s) => s.quickJoin);
+  const account = useAuthStore((s) => s.account);
+  const signOut = useAuthStore((s) => s.signOut);
   const [nickname, setNickname] = useState("");
   const [capacity, setCapacity] = useState(8);
   const [scenario, setScenario] = useState<Scenario>("RussianMafia");
@@ -20,6 +23,12 @@ export function Landing() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<Mode | null>(null);
   const [rolesOpen, setRolesOpen] = useState(false);
+
+  // بدون حساب، اسم بازیکن معلوم نیست — به ورود می‌فرستیم.
+  useEffect(() => {
+    if (!account) navigate("/login", { replace: true });
+    else setNickname(account.displayName);
+  }, [account, navigate]);
 
   function requireNickname() {
     const name = nickname.trim();
@@ -93,14 +102,23 @@ export function Landing() {
         </p>
       </div>
 
-      <input
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
-        maxLength={20}
-        placeholder="اسمت رو بنویس"
-        className="w-full rounded-lg border px-4 py-3 text-center outline-none"
-        style={{ background: "var(--table)", borderColor: "var(--rule)", color: "var(--parchment)" }}
-      />
+      {/* اسم دیگر پرسیده نمی‌شود — از حساب واردشده می‌آید */}
+      <div
+        className="flex w-full items-center justify-between rounded-lg border px-4 py-3"
+        style={{ background: "var(--table)", borderColor: "var(--rule)" }}
+      >
+        <div className="text-right">
+          <p className="text-sm font-bold" style={{ color: "var(--parchment)" }}>{account?.displayName}</p>
+          <p dir="ltr" className="font-mono text-xs" style={{ color: "var(--muted)" }}>{account?.mobile}</p>
+        </div>
+        <button
+          onClick={() => { signOut(); navigate("/login", { replace: true }); }}
+          className="text-xs underline underline-offset-4"
+          style={{ color: "var(--parchment-dim)" }}
+        >
+          خروج
+        </button>
+      </div>
 
       <div className="flex w-full flex-col gap-3">
         {/* ── بازی سریع (عمومی) ─────────────────────────────────────────── */}
