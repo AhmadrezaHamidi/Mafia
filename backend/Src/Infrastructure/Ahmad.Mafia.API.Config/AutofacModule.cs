@@ -3,8 +3,11 @@ using AhmadBase.IOC;
 using Autofac;
 using Ahmad.Mafia.Config.Middlewares;
 using Ahmad.Mafia.Application.Validators;
+using Ahmad.Mafia.Domain.Identity.Repositories;
 using Ahmad.Mafia.Domain.Repositories;
+using Ahmad.Mafia.Application.Contract.Identity.Services;
 using Ahmad.Mafia.Persistence.EF.Repositories;
+using Ahmad.Mafia.Persistence.EF.Services;
 using FluentValidation;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -29,6 +32,12 @@ public class AutofacModule : Autofac.Module
         // ── ۲. Domain Repositories ─────────────────────────────────────────────
         builder.RegisterType<RoomRepository>().As<IRoomRepository>().InstancePerLifetimeScope();
         builder.RegisterType<GameSessionRepository>().As<IGameSessionRepository>().InstancePerLifetimeScope();
+        builder.RegisterType<IdentityRepository>().As<IIdentityRepository>().InstancePerLifetimeScope();
+
+        // ── ۲.۱ سرویس‌های هویت ────────────────────────────────────────────────
+        builder.RegisterType<JwtService>().As<IJwtService>().InstancePerLifetimeScope();
+        // تا وقتی درگاه پیامکی وصل نشده، کد فقط لاگ می‌شود و در پاسخ API می‌آید
+        builder.RegisterType<LoggingOtpSender>().As<IOtpSender>().InstancePerLifetimeScope();
 
         // ── ۳. FluentValidation — validators + pipeline behavior ───────────────
         builder.RegisterType<ValidationExceptionStartupFilter>()

@@ -1,4 +1,5 @@
 using Ahmad.Mafia.Domain.GameSession.Args;
+using Ahmad.Mafia.Domain.GameSession.Entities;
 using Ahmad.Mafia.Domain.GameSession.Enums;
 using Ahmad.Mafia.Domain.GameSession.Events;
 using Ahmad.Mafia.Domain.GameSession.Exceptions;
@@ -61,7 +62,7 @@ public class GameSessionTests
     public void SubmitNightAction_ByMafia_Should_SetNightTarget()
     {
         var session = CreateSession();
-        var mafia = session.Players.First(p => p.Role == Role.SimpleMafia);
+        var mafia = KillDecider(session);
         var target = session.Players.First(p => p.Id != mafia.Id);
 
         session.SubmitNightAction(mafia.Id, target.Id);
@@ -74,7 +75,7 @@ public class GameSessionTests
     public void SubmitNightAction_TargetNotInGame_Should_Throw_PlayerNotInGameException()
     {
         var session = CreateSession();
-        var mafia = session.Players.First(p => p.Role == Role.SimpleMafia);
+        var mafia = KillDecider(session);
 
         Assert.Throws<PlayerNotInGameException>(() => session.SubmitNightAction(mafia.Id, 999));
     }
@@ -83,7 +84,7 @@ public class GameSessionTests
     public void ResolveNightPhase_Round1_WithTarget_Should_EliminateTarget()
     {
         var session = CreateSession();
-        var mafia = session.Players.First(p => p.Role == Role.SimpleMafia);
+        var mafia = KillDecider(session);
         var target = session.Players.First(p => p.Role == Role.SimpleCitizen);
         session.SubmitNightAction(mafia.Id, target.Id);
 
@@ -115,7 +116,7 @@ public class GameSessionTests
         Assert.Equal(2, session.Round);
         Assert.Equal(GamePhase.Night, session.Phase);
 
-        var mafia = session.Players.First(p => p.Role == Role.SimpleMafia && p.IsAlive);
+        var mafia = KillDecider(session);
         var target = session.Players.First(p => p.Role == Role.SimpleCitizen && p.IsAlive);
         session.SubmitNightAction(mafia.Id, target.Id);
 
@@ -161,7 +162,7 @@ public class GameSessionTests
     public void CastVote_ByEliminatedPlayer_Should_Throw_PlayerAlreadyEliminatedException()
     {
         var session = CreateSession(8);
-        var mafia = session.Players.First(p => p.Role == Role.SimpleMafia);
+        var mafia = KillDecider(session);
         var deadCitizen = session.Players.First(p => p.Role == Role.SimpleCitizen);
         session.SubmitNightAction(mafia.Id, deadCitizen.Id);
         session.ResolveNightPhase(); // deadCitizen eliminated, -> Day
@@ -211,7 +212,7 @@ public class GameSessionTests
     public void Game_Should_EndWithMafiaWin_WhenMafiaReachesParityWithTown()
     {
         var session = CreateSession(6); // 2 mafia, 4 citizens
-        var mafia = session.Players.First(p => p.Role == Role.SimpleMafia);
+        var mafia = KillDecider(session);
         var firstVictim = session.Players.First(p => p.Role == Role.SimpleCitizen);
 
         session.SubmitNightAction(mafia.Id, firstVictim.Id);
@@ -241,7 +242,7 @@ public class GameSessionTests
     public void RequestRematch_WhenGameEnded_Should_ResetAllPlayersAlive_AndReassignRoles()
     {
         var session = CreateSession(6);
-        var mafia = session.Players.First(p => p.Role == Role.SimpleMafia);
+        var mafia = KillDecider(session);
         var target = session.Players.First(p => p.Role == Role.SimpleCitizen);
         session.SubmitNightAction(mafia.Id, target.Id);
         session.ResolveNightPhase();
@@ -258,6 +259,13 @@ public class GameSessionTests
         Assert.Equal(1, session.Round);
         Assert.Equal(WinningTeam.None, session.WinningTeam);
     }
+
+    /// <summary>
+    /// مافیایی که اجازه‌ی ثبتِ کشتن دارد. با بیش از یک مافیای زنده، دامین فقط
+    /// از رئیس می‌پذیرد — پس تست‌ها نباید «اولین مافیا» را بردارند.
+    /// </summary>
+    private static GamePlayer KillDecider(GameSessionAgg session)
+        => session.Players.First(p => p.IsAlive && p.Role is Role.SimpleMafia or Role.GodFather && p.IsMafiaLeader);
 
     private static void VoteOutUnanimously(GameSessionAgg session, long targetId)
     {

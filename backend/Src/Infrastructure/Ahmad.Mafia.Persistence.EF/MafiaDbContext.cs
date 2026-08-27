@@ -1,5 +1,6 @@
 using AhmadBase.Doamin;
 using Ahmad.Mafia.Domain.GameSession.Entities;
+using Ahmad.Mafia.Domain.Identity.Aggregates;
 using Ahmad.Mafia.Domain.Room.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -16,6 +17,8 @@ public sealed class MafiaDbContext : DbContext, IUnitOfWork
     public DbSet<RoomMember> RoomMembers => Set<RoomMember>();
     public DbSet<GameSessionAggregate> GameSessions => Set<GameSessionAggregate>();
     public DbSet<GamePlayer> GamePlayers => Set<GamePlayer>();
+    public DbSet<PlayerAccount> PlayerAccounts => Set<PlayerAccount>();
+    public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

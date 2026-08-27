@@ -2,6 +2,7 @@ using Ahmad.Mafia.Application.Contract.GameSession.Commands;
 using Ahmad.Mafia.Application.Handlers;
 using Ahmad.Mafia.Application.Tests.Fakes;
 using Ahmad.Mafia.Domain.GameSession.Args;
+using Ahmad.Mafia.Domain.GameSession.Entities;
 using Ahmad.Mafia.Domain.GameSession.Enums;
 using Ahmad.Mafia.Domain.GameSession.Exceptions;
 using GameSessionAgg = Ahmad.Mafia.Domain.GameSession.Aggregates.GameSession;
@@ -29,7 +30,7 @@ public class GameSessionHandlersTests
     {
         var session = MakeSession();
         _repo.Seed(session);
-        var mafia = session.Players.First(p => p.Role == Role.SimpleMafia);
+        var mafia = KillDecider(session);
         var target = session.Players.First(p => p.Id != mafia.Id);
 
         await _sut.Handle(new SubmitNightActionCommand(session.Id, mafia.Id, target.Id), _ct);
@@ -119,7 +120,7 @@ public class GameSessionHandlersTests
     public async Task CastVote_ByEliminatedPlayer_Should_Throw_PlayerAlreadyEliminatedException()
     {
         var session = MakeSession(8);
-        var mafia = session.Players.First(p => p.Role == Role.SimpleMafia);
+        var mafia = KillDecider(session);
         var victim = session.Players.First(p => p.Role == Role.SimpleCitizen);
         session.SubmitNightAction(mafia.Id, victim.Id);
         session.ResolveNightPhase(); // victim eliminated -> Day
@@ -176,4 +177,12 @@ public class GameSessionHandlersTests
         foreach (var voter in session.Players.Where(p => p.IsAlive && p.Id != targetId))
             session.CastVote(voter.Id, targetId);
     }
+    /// <summary>
+    /// مافیایی که اجازه‌ی ثبتِ کشتن دارد. نقش‌ها تصادفی تخصیص می‌یابند و با بیش
+    /// از یک مافیای زنده دامین فقط از رئیس می‌پذیرد — برداشتنِ «اولین مافیا»
+    /// تست را وابسته به شانس می‌کرد.
+    /// </summary>
+    private static GamePlayer KillDecider(GameSessionAgg session)
+        => session.Players.First(p => p.IsAlive && p.Role is Role.SimpleMafia or Role.GodFather && p.IsMafiaLeader);
+
 }

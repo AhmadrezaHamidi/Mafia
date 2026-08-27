@@ -1,4 +1,5 @@
 using Ahmad.Mafia.Domain.Repositories;
+using Ahmad.Mafia.Domain.Room.Enums;
 using RoomAgg = Ahmad.Mafia.Domain.Room.Aggregates.Room;
 
 namespace Ahmad.Mafia.Application.Tests.Fakes;
@@ -16,6 +17,13 @@ public class FakeRoomRepository : IRoomRepository
 
     public Task<RoomAgg?> GetByCodeAsync(string roomCode, CancellationToken token = default)
         => Task.FromResult(_store.Values.FirstOrDefault(r => r.RoomCode == roomCode));
+
+    /// <summary>همان منطق repository واقعی: قدیمی‌ترین روم عمومیِ هنوز منتظر.</summary>
+    public Task<RoomAgg?> GetOpenPublicRoomAsync(CancellationToken token = default)
+        => Task.FromResult(_store.Values
+            .Where(r => r.Visibility == RoomVisibility.Public && r.Status == RoomStatus.WaitingForPlayers)
+            .OrderBy(r => r.CreatedAtUtc)
+            .FirstOrDefault());
 
     public Task AddAsync(RoomAgg room, CancellationToken token = default)
     {

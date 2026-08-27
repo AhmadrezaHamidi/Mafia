@@ -42,6 +42,24 @@ namespace Ahmad.Mafia.Persistence.EF.Migrations
                     b.Property<int>("NightDurationSeconds")
                         .HasColumnType("int");
 
+                    b.Property<long?>("NightGuardTargetPlayerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("NightGuardianPlayerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("NightInvestigateTargetPlayerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("NightInvestigatorPlayerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("NightSaveTargetPlayerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("NightSerialKillerTargetPlayerId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("NightTargetPlayerId")
                         .HasColumnType("bigint");
 
@@ -58,6 +76,11 @@ namespace Ahmad.Mafia.Persistence.EF.Migrations
 
                     b.Property<int>("Round")
                         .HasColumnType("int");
+
+                    b.Property<string>("Scenario")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("WinningTeam")
                         .IsRequired()
@@ -99,6 +122,15 @@ namespace Ahmad.Mafia.Persistence.EF.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsMafiaLeader")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("LastInvestigationIsMafia")
+                        .HasColumnType("bit");
+
+                    b.Property<long?>("LastInvestigationTargetId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("ModificationTime")
                         .HasColumnType("datetimeoffset");
 
@@ -117,6 +149,92 @@ namespace Ahmad.Mafia.Persistence.EF.Migrations
                     b.HasIndex("GameSessionId");
 
                     b.ToTable("GamePlayers", (string)null);
+                });
+
+            modelBuilder.Entity("Ahmad.Mafia.Domain.Identity.Aggregates.OtpChallenge", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("ConsumedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTimeOffset>("CreationTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<DateTimeOffset?>("ModificationTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Salt")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Mobile", "CreatedAtUtc");
+
+                    b.ToTable("OtpChallenges", (string)null);
+                });
+
+            modelBuilder.Entity("Ahmad.Mafia.Domain.Identity.Aggregates.PlayerAccount", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTimeOffset>("CreationTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastLoginAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<DateTimeOffset?>("ModificationTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Mobile")
+                        .IsUnique();
+
+                    b.ToTable("PlayerAccounts", (string)null);
                 });
 
             modelBuilder.Entity("Ahmad.Mafia.Domain.Room.Aggregates.Room", b =>
@@ -144,7 +262,17 @@ namespace Ahmad.Mafia.Persistence.EF.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<string>("Scenario")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Visibility")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
