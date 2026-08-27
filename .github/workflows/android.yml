@@ -1,0 +1,70 @@
+# ساخت APK اندروید روی GitHub Actions.
+#
+# چرا اینجا و نه روی ماشین خودمان: dl.google.com، maven.google.com و
+# services.gradle.org از شبکه‌ی ما در دسترس نیستند، پس Android SDK و Gradle
+# اصلاً دانلود نمی‌شوند. runner گیت‌هاب این محدودیت را ندارد.
+#
+# خروجی: فایل APK در بخش Artifacts همان اجرا، قابل دانلود و نصب مستقیم.
+
+name: ساخت اپ اندروید
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch: # اجرای دستی از تب Actions
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: نصب وابستگی‌ها
+        run: npm ci
+
+      - name: بررسی تایپ و لینت
+        run: |
+          npx tsc --noEmit -p tsconfig.app.json
+          npm run lint
+
+      # build:mobile با base نسبی و آدرس کامل سرور — دارایی‌های وب داخل
+      # پروژه‌ی اندروید در گیت نیستند و هر بار اینجا ساخته می‌شوند.
+      - name: build وب برای بسته‌ی نیتیو
+        run: npm run build:mobile
+
+      - name: همگام‌سازی با پروژه‌ی اندروید
+        run: npx cap sync android
+
+      - name: ساخت APK
+        working-directory: frontend/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mafia-apk
+          path: frontend/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30

@@ -1,15 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  سرور فعلاً TLS ندارد و اندروید ۹ به بعد HTTP ساده را می‌بندد.
-  استثنا عمداً فقط برای همین یک دامنه است، نه cleartextTrafficPermitted سراسری:
-  با اجازه‌ی سراسری، هر درخواست دیگری هم بی‌محافظ می‌شد.
-
-  هشدار: کد OTP و توکن روی HTTP رد و بدل می‌شود و قابل شنود است. با راه‌اندازی
-  HTTPS روی سرور، این فایل و allowMixedContent در capacitor.config باید برداشته شوند.
+  سرور روی HTTPS با گواهی معتبر Let's Encrypt است، پس هیچ استثنایی لازم نیست.
+  این فایل عمداً می‌ماند تا صریح باشد که HTTP ساده بسته است — نه اینکه
+  فقط پیش‌فرضِ اندروید رویش اثر کند.
 -->
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">95.38.185.73</domain>
-    </domain-config>
     <base-config cleartextTrafficPermitted="false" />
 </network-security-config>
